@@ -1,5 +1,6 @@
-#include <stm32f031x6.h> //this is the best code ever
+#include <stm32f031x6.h>
 #include "display.h"
+
 void initClock(void);
 void initSysTick(void);
 void SysTick_Handler(void);
@@ -11,162 +12,502 @@ void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode);
 
 volatile uint32_t milliseconds;
 
+// ─── Sprite Data ────────────────────────────────────────────────────────────
+
 const uint16_t programmer_front[]=
 {
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,5180,5180,5180,5180,5180,5180,5180,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,35581,65535,65535,24535,35581,35581,65535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,35581,65535,65535,24535,35581,35581,65535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,65535,48310,48310,24535,65535,65535,65535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,48310,48310,48310,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,48310,48310,48310,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,48310,24535,24535,24535,48310,48310,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,48310,48310,48310,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,48310,48310,48310,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,48310,48310,48310,48310,48310,48310,48310,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,2303,16175,16175,16175,16175,16175,2303,2303,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,10190,10190,2303,16175,16175,2303,2303,2303,2303,10190,10190,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,10190,10190,2303,16175,16175,2303,2303,2303,2303,10190,10190,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,10190,10190,2303,16175,16175,2303,2303,2303,2303,10190,10190,2303,2303,2303,2303,2303,2303,2303,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,10190,10190,10190,2303,16175,16175,16175,16175,16175,2303,10190,10190,10190,2303,2303,2303,24535,24535,24535,0,0,0,0,0,0,2303,2303,2303,2303,2303,2303,10190,10190,10190,2303,16175,16175,16175,16175,16175,2303,10190,10190,10190,2303,2303,2303,24535,24535,24535,0,0,0,0,0,0,24535,24535,24535,2303,2303,2303,10190,10190,10190,2303,2303,2303,2303,2303,2303,2303,10190,10190,10190,0,0,24535,24535,24535,24535,24535,24535,0,0,0,0,24535,24535,24535,24535,0,0,0,10190,10190,10190,2303,2303,2303,2303,2303,2303,10190,10190,0,0,0,24535,24535,24535,24535,24535,24535,0,0,0,0,24535,24535,24535,24535,0,0,0,10190,10190,10190,2303,2303,2303,2303,2303,2303,10190,10190,0,0,0,24535,24535,24535,24535,24535,24535,0,0,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,10190,2303,2303,2303,2303,2303,10190,10190,10190,0,0,0,0,24535,24535,24535,24535,24535,0,0,24535,24535,24535,24535,24535,24535,0,0,0,0,0,10190,10190,10190,10190,10190,10190,10190,44014,44014,0,0,0,0,24535,24535,24535,24535,24535,0,0,24535,24535,24535,24535,24535,24535,0,0,0,0,0,10190,10190,10190,10190,10190,10190,10190,44014,44014,0,0,0,0,24535,24535,24535,24535,24535,0,0,0,0,24535,24535,24535,0,0,0,0,44014,44014,44014,27349,27349,27349,27349,27349,27349,44014,44014,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44014,44014,27349,27349,27349,44014,44014,44014,27349,27349,27349,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44014,44014,27349,27349,27349,44014,44014,44014,27349,27349,27349,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44014,44014,27349,27349,27349,44014,44014,44014,27349,27349,27349,27349,44014,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44014,44014,44014,27349,44014,44014,44014,0,0,44014,27349,27349,27349,44014,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44014,44014,44014,27349,44014,44014,44014,0,0,44014,27349,27349,27349,44014,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44014,27349,27349,27349,44014,44014,0,0,0,44014,27349,27349,27349,44014,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44014,27349,27349,27349,44014,44014,0,0,0,44014,27349,27349,27349,44014,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44014,27349,27349,27349,44014,44014,0,0,0,44014,27349,27349,27349,44014,44014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,47693,47693,5180,5180,5180,5180,47693,47693,0,0,0,44014,27349,27349,27349,47693,47693,0,0,0,0,0,0,0,0,0,0,0,47693,47693,47693,5180,5180,5180,5180,5180,5180,47693,47693,0,0,0,47693,5180,5180,5180,5180,5180,47693,47693,47693,0,0,0,0,0,0,0,0,47693,47693,47693,5180,5180,5180,5180,5180,5180,47693,47693,0,0,0,47693,5180,5180,5180,5180,5180,47693,47693,47693,0,0,0,0,0,0,0,0,47693,47693,47693,47693,47693,47693,47693,47693,47693,0,0,0,0,0,47693,47693,47693,47693,47693,47693,47693,47693,47693,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 };
-const uint16_t deco1[]=
+
+// ─── Colours ─────────────────────────────────────────────────────────────────
+#define COL_BLACK    RGBToWord(0,0,0)
+#define COL_WHITE    RGBToWord(0xFF,0xFF,0xFF)
+#define COL_YELLOW   RGBToWord(0xFF,0xFF,0)
+#define COL_RED      RGBToWord(0xFF,0,0)
+#define COL_GREEN    RGBToWord(0,0xFF,0)
+#define COL_BLUE     RGBToWord(0,0,0xFF)
+#define COL_CYAN     RGBToWord(0,0xFF,0xFF)
+#define COL_GRAY     RGBToWord(0x80,0x80,0x80)
+#define COL_DARKGRAY RGBToWord(0x30,0x30,0x30)
+#define COL_ORANGE   RGBToWord(0xFF,0x88,0)
+#define COL_PURPLE   RGBToWord(0xAA,0,0xFF)
+#define COL_LTBLUE   RGBToWord(0x40,0x80,0xFF)
+
+// ─── Layout constants ────────────────────────────────────────────────────────
+// Player character: bottom-left (as original)
+#define PLAYER_X       20
+#define PLAYER_Y       75
+#define PLAYER_SPR_W   31
+#define PLAYER_SPR_H   60
+
+// Enemy character: top-right (as original, flipped)
+#define ENEMY_X        70
+#define ENEMY_Y        15
+#define ENEMY_SPR_W    31
+#define ENEMY_SPR_H    60
+
+// Health bar dimensions
+#define BAR_W          50
+#define BAR_H          5
+
+// Player health bar – just below player sprite bottom
+#define PLAYER_HP_BAR_X   5
+#define PLAYER_HP_BAR_Y   138
+
+// Enemy health bar – just above enemy sprite top
+#define ENEMY_HP_BAR_X    60
+#define ENEMY_HP_BAR_Y    10
+
+// Move buttons: 3 buttons along the bottom
+// Screen is 128 wide, 160 tall (typical ST7735)
+#define MOVE_Y         148   // y-start of move area
+#define MOVE_H         10
+#define MOVE_W         40
+#define MOVE1_X        2
+#define MOVE2_X        44
+#define MOVE3_X        86
+
+// Message area: one line of text between characters
+#define MSG_X          2
+#define MSG_Y          66
+
+// ─── Game state ──────────────────────────────────────────────────────────────
+typedef enum {
+    STATE_PLAYER_TURN,
+    STATE_ENEMY_TURN,
+    STATE_PLAYER_WIN,
+    STATE_ENEMY_WIN
+} GameState;
+
+// ─── Pseudo-random helper ────────────────────────────────────────────────────
+static uint32_t rng_seed = 12345;
+uint32_t rand_next(void)
 {
-0,0,0,0,4,4,4,4,4,0,0,0,0,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,65415,65415,65415,248,65415,0,0,0,0,0,0,0,65415,65415,65415,65415,65415,8068,0,0,0,0,0,0,65415,65415,65415,4096,4096,0,0,0,0,0,0,0,0,65415,65415,65415,0,0,0,0,0,0,0,0,0,7936,7936,7936,0,0,0,0,0,0,0,0,7936,7936,65535,7936,0,0,0,0,0,0,0,0,7936,7936,65535,7936,7936,7936,7936,0,0,0,0,0,7936,7936,65535,65535,65535,65535,7936,0,0,0,0,0,7936,7936,7936,7936,7936,7936,7936,0,0,0,0,0,7936,7936,7936,7936,0,0,0,0,0,0,0,0,0,7936,65535,7936,0,0,0,0,0,0,0,0,0,7936,65535,7936,0,0,0,0,0,0,0,0,0,7936,65535,7936,0,0,0,0,0,0,0,0,0,7940,7940,7940,7940,0,0,0,
-};
-const uint16_t deco2[]= 
-	{
-0,0,0,0,0,4,4,4,4,4,0,0,0,0,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,65415,65415,65415,248,65415,0,0,0,0,0,0,0,65415,65415,65415,65415,65415,8068,0,0,0,0,0,0,65415,65415,65415,4096,4096,0,0,0,0,0,0,0,0,65415,65415,65415,0,0,0,0,0,0,0,0,7936,7936,7936,0,0,0,0,0,0,0,0,7936,7936,65535,7936,0,0,0,0,0,0,0,0,7936,7936,65535,7936,7936,7936,7936,0,0,0,0,0,7936,7936,65535,65535,65535,65535,7936,0,0,0,0,0,7936,7936,7936,7936,7936,7936,7936,0,0,0,0,0,7936,7936,7936,7936,0,0,0,0,0,0,0,0,0,40224,7936,65535,7936,0,0,0,0,0,0,0,40224,40224,7936,65535,7936,0,0,0,0,0,0,65315,40224,40224,7936,65535,40224,0,0,0,0,0,0,0,65315,0,65315,65315,65315,65315,0,0,
-	};
-const uint16_t deco3[]= 
-{
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,4,4,4,4,0,0,0,0,0,0,0,4,4,4,4,4,4,0,0,0,0,7936,7936,4,4,4,4,4,4,7936,7936,0,0,65535,65535,4,4,4,4,4,4,65535,65535,0,0,7936,7936,4,4,4,4,4,4,7936,7936,0,0,0,0,0,4,4,4,4,0,0,0,0,0,0,0,0,0,24327,24327,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-};
-const uint16_t dg1[]=
-{
-	0,0,16142,16142,16142,16142,16142,16142,16142,16142,0,0,0,0,0,16142,16142,16142,16142,16142,16142,0,0,0,0,0,16142,16142,16142,16142,16142,16142,16142,16142,0,0,0,0,16142,16142,16142,1994,1994,16142,16142,16142,0,0,0,0,16142,16142,16142,1994,16142,1994,16142,16142,0,0,0,0,16142,16142,16142,1994,16142,1994,16142,16142,0,0,0,0,16142,16142,16142,1994,16142,1994,16142,16142,0,0,0,0,16142,16142,16142,1994,1994,16142,16142,16142,0,0,0,0,16142,16142,16142,16142,16142,16142,16142,16142,0,0,0,0,16142,16142,16142,1994,1994,1994,16142,16142,0,0,0,0,16142,16142,16142,1994,16142,16142,16142,16142,0,0,0,0,16142,16142,16142,1994,16142,16142,16142,16142,0,0,0,0,16142,16142,16142,1994,16142,1994,16142,16142,0,0,0,0,16142,16142,16142,1994,1994,1994,16142,16142,0,0,0,0,0,16142,16142,16142,16142,16142,16142,0,0,0,0,0,0,16142,16142,16142,16142,16142,16142,0,0,0,
-};
-
-#define COMPUTER_HEALTH_X 40
-#define COMPUTER_HEALTH_Y 10
-#define HEALTH_COLOR RGBToWord(0xFF,0xFF,0) // yellow for visibility
-
-int main()
-{
-	int health = 100;
-	int computer_health = 100;
-	
-	initClock();
-	initSysTick();
-	setupIO();
-
-	//letting the user choose three characters of the eight that are being offered, the user will choose by pressing the buttons on the board, and the computer will randomly choose three characters as well, and then the game will begin
-	//setting the users health to 100 and the computers health to 100, and then the game will begin, the user will be able to attack the computer by pressing the buttons on the board, and the computer will attack the user randomly, and then the game will end when either the user or the computer reaches 0 health, and then the winner will be declared
-
-	while(1)
-	{
-
-
-
-		//this is where the main game loop will be, it will run every 50 milliseconds and update the screen with the new health values and the new positions of the characters, as well as checking for user input and updating the health values accordingly
-
-		
-		//printing the users health in the very bottom left of the scren permanently
-		printText("Health:%d", health, 3, 135, RGBToWord(0xFF, 0xFF, 0));
-
-		//printing the computers health in the very top right of the screen permanently
-	
-		
-		printText("Health:%d", computer_health, COMPUTER_HEALTH_X, COMPUTER_HEALTH_Y, HEALTH_COLOR);
-		printText("Health:%d", computer_health, 40, 10, RGBToWord(0xFFFF, 0, 0));
-
-		//putting the man in the bottom left of the screen permanently
-		putImage(20,75,31,60,programmer_front,0,0);
-
-		//putting the computer character in the top right of the screen permanently
-		putImage(70,15,31,60,programmer_front,1,0);
-
-
-
-		
-		//printTextX2("9-5", 32, 0, RGBToWord(0xff,0xff,0), 0);
-		//printTextX2("Fights!", 32, 15, RGBToWord(0xff,0xff,0), 0);					
-		}		
-		delay(50);	
-	return 0;
+    rng_seed ^= rng_seed << 13;
+    rng_seed ^= rng_seed >> 17;
+    rng_seed ^= rng_seed << 5;
+    return rng_seed;
 }
+int rand_range(int lo, int hi) // inclusive
+{
+    return lo + (int)(rand_next() % (uint32_t)(hi - lo + 1));
+}
+
+// ─── Button reading ──────────────────────────────────────────────────────────
+// Physical buttons (active-low, pull-ups enabled in setupIO):
+//   PB4  = LEFT   -> cycle move selection left
+//   PB5  = RIGHT  -> cycle move selection right
+//   PA8  = DOWN   -> confirm / use selected move
+//   PA11 = UP     -> (unused, reserved)
+#define BTN_PRESSED(port, pin)  (!((port)->IDR & (1u << (pin))))
+
+int btn_left_prev  = 0;
+int btn_right_prev = 0;
+int btn_down_prev  = 0;
+int btn_up_prev    = 0;
+
+// Returns 1 only on the frame the button is first pressed (rising edge)
+int btn_right_just(void)  { int v = BTN_PRESSED(GPIOB,4);  int r = v && !btn_left_prev;  btn_left_prev  = v; return r; }
+int btn_left_just(void) { int v = BTN_PRESSED(GPIOB,5);  int r = v && !btn_right_prev; btn_right_prev = v; return r; }
+int btn_down_just(void)  { int v = BTN_PRESSED(GPIOA,8);  int r = v && !btn_down_prev;  btn_down_prev  = v; return r; }
+int btn_up_just(void)    { int v = BTN_PRESSED(GPIOA,11); int r = v && !btn_up_prev;    btn_up_prev    = v; return r; }
+
+// ─── UI helpers ──────────────────────────────────────────────────────────────
+
+// Draw a filled rectangle using horizontal lines (no fillRect needed)
+void draw_filled_rect(int x, int y, int w, int h, uint16_t color)
+{
+    for (int row = 0; row < h; row++)
+        drawLine(x, y + row, x + w - 1, y + row, color);
+}
+
+// Draw hollow rectangle border using drawLine
+void draw_rect_border(int x, int y, int w, int h, uint16_t color)
+{
+    drawLine(x,         y,         x + w - 1, y,         color); // top
+    drawLine(x,         y + h - 1, x + w - 1, y + h - 1, color); // bottom
+    drawLine(x,         y,         x,         y + h - 1, color); // left
+    drawLine(x + w - 1, y,         x + w - 1, y + h - 1, color); // right
+}
+
+void draw_hp_bar(int x, int y, int hp, int max_hp, uint16_t color)
+{
+    // Background (dark gray)
+    draw_filled_rect(x, y, BAR_W, BAR_H, COL_DARKGRAY);
+    // Filled portion
+    int filled = (hp * BAR_W) / max_hp;
+    if (filled < 0) filled = 0;
+    if (filled > BAR_W) filled = BAR_W;
+    if (filled > 0)
+        draw_filled_rect(x, y, filled, BAR_H, color);
+    // Border
+    draw_rect_border(x, y, BAR_W, BAR_H, COL_WHITE);
+}
+
+uint16_t hp_color(int hp, int max)
+{
+    if (hp * 4 > max * 3) return COL_GREEN;        // >75%
+    if (hp * 2 > max)     return COL_YELLOW;       // >50%
+    if (hp * 4 > max)     return COL_ORANGE;       // >25%
+    return COL_RED;
+}
+
+void draw_move_buttons(int selected)
+{
+    const char *names[3] = {"PUNCH", "HACK ", "SURGE"};
+    for (int i = 0; i < 3; i++) {
+        int bx = MOVE1_X + i * 42;
+        uint16_t bg = (i == selected) ? COL_LTBLUE : COL_DARKGRAY;
+        draw_filled_rect(bx, MOVE_Y, MOVE_W, MOVE_H, bg);
+        draw_rect_border(bx, MOVE_Y, MOVE_W, MOVE_H, COL_WHITE);
+        printText(names[i], bx + 2, MOVE_Y + 2, COL_WHITE, bg);
+    }
+    // Button legend
+    printText("<  CONFIRM  >", 2, MOVE_Y + 12, COL_GRAY, COL_BLACK);
+}
+
+// Simple integer-to-string for HP display (no sprintf needed)
+void itoa_simple(int v, char *buf)
+{
+    if (v <= 0) { buf[0]='0'; buf[1]=0; return; }
+    int i = 0, tmp = v;
+    while (tmp > 0) { buf[i++] = '0' + (tmp % 10); tmp /= 10; }
+    buf[i] = 0;
+    // reverse
+    for (int a = 0, b = i-1; a < b; a++, b--) {
+        char c = buf[a]; buf[a] = buf[b]; buf[b] = c;
+    }
+}
+
+void draw_scene(int player_hp, int enemy_hp)
+{
+    char buf[12];
+    // Player sprite (bottom-left, facing right)
+    putImage(PLAYER_X, PLAYER_Y, PLAYER_SPR_W, PLAYER_SPR_H, programmer_front, 0, 0);
+    // Enemy sprite (top-right, flipped horizontally)
+    putImage(ENEMY_X, ENEMY_Y, ENEMY_SPR_W, ENEMY_SPR_H, programmer_front, 1, 0);
+
+    // HP bars
+    draw_hp_bar(PLAYER_HP_BAR_X, PLAYER_HP_BAR_Y, player_hp, 100, hp_color(player_hp, 100));
+    draw_hp_bar(ENEMY_HP_BAR_X,  ENEMY_HP_BAR_Y,  enemy_hp,  100, hp_color(enemy_hp,  100));
+
+    // HP numbers
+    buf[0]='H'; buf[1]='P'; buf[2]=':'; itoa_simple(player_hp, buf+3);
+    printText(buf, PLAYER_HP_BAR_X, PLAYER_HP_BAR_Y - 8, COL_WHITE, COL_BLACK);
+    buf[0]='H'; buf[1]='P'; buf[2]=':'; itoa_simple(enemy_hp, buf+3);
+    printText(buf, ENEMY_HP_BAR_X,  ENEMY_HP_BAR_Y + 7,  COL_WHITE, COL_BLACK);
+}
+
+void show_message(const char *line1, const char *line2)
+{
+    draw_filled_rect(0, MSG_Y, 128, 18, COL_BLACK);
+    if (line1) printText(line1, MSG_X, MSG_Y,     COL_WHITE,  COL_BLACK);
+    if (line2) printText(line2, MSG_X, MSG_Y + 9, COL_YELLOW, COL_BLACK);
+}
+
+// ─── Moves ───────────────────────────────────────────────────────────────────
+// Move indices: 0=Punch, 1=Hack, 2=Power Surge
+// Damage: randomised per move
+//   Punch:      15-25  (reliable)
+//   Hack:       5-35   (high variance)
+//   Power Surge:30-45  (heavy hit, costs nothing here)
+
+typedef struct {
+    const char *name;
+    int dmg_lo;
+    int dmg_hi;
+    const char *flavor; // shown in message box
+} Move;
+
+const Move moves[3] = {
+    { "PUNCH",      15, 25, "lands a PUNCH!" },
+    { "HACK",        5, 35, "hacks hard!"    },
+    { "POWER SURGE",30, 45, "POWER SURGE!!"  },
+};
+
+void start_screen(int selected){
+
+	draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+
+	printTextX2("9-5", 38, 20, COL_YELLOW, COL_BLACK);
+	printTextX2("FIGHTS!", 18, 40, COL_WHITE, COL_BLACK);
+
+	printText(selected == 0 ? "> START " : " START ", 30, 80, COL_GRAY, COL_BLACK);
+	printText(selected == 1 ? "> CREDITS " : " CREDITS ", 30, 90, COL_GRAY, COL_BLACK);
+	printText(selected == 2 ? "> QUIT " : " QUIT ", 30, 100, COL_GRAY, COL_BLACK);
+
+}
+
+void credits(){
+
+	draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+
+	delay(50);
+	printTextX2("Developers", 0, 20, COL_YELLOW, COL_BLACK);
+	printText("Georgin Jobin", 0, 80, COL_WHITE, COL_BLACK);
+	printText("Jamie Bailey Morton", 0, 90, COL_WHITE, COL_BLACK);
+	printText("Joe Rafter", 0, 100, COL_WHITE, COL_BLACK);
+
+	btn_down_just();
+    btn_up_just();
+    btn_left_just();//this resets the button presses because it regesters as two without this
+    btn_right_just();
+
+	while(1){
+
+		if (btn_down_just() || btn_left_just() || btn_right_just() || btn_up_just()) {
+
+		return 1;
+
+	}
+
+	}
+
+	
+
+}
+
+
+// ─── Main ────────────────────────────────────────────────────────────────────
+
+int main(void)
+{
+    initClock();
+    initSysTick();
+    setupIO();
+
+	int menu_select = 0;
+	start_screen(menu_select);
+
+	while (1) {
+
+		delay(50);
+		btn_left_just();
+		btn_right_just();
+
+		if (btn_up_just()) {
+
+			menu_select = (menu_select + 1) % 3;
+			start_screen(menu_select);
+
+		}
+
+		if (btn_down_just()) {
+
+			if (menu_select == 0) {
+
+				break;
+
+			} else if (menu_select == 1) {
+				
+				credits();
+				start_screen(menu_select);
+
+			} else if (menu_select == 2) {
+		
+				start_screen(menu_select);
+
+			}
+			
+		}
+
+	}
+
+    // Seed RNG with milliseconds tick (small but nonzero after init)
+    delay(10);
+    rng_seed += milliseconds;
+
+    int player_hp  = 100;
+    int enemy_hp   = 100;
+    int selected   = 0;  // currently highlighted move (0,1,2)
+    GameState state = STATE_PLAYER_TURN;
+
+    char msg1[32] = "YOUR TURN";
+    char msg2[32] = "Choose a move!";
+
+    // Initial draw
+    draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+    draw_scene(player_hp, enemy_hp);
+    show_message(msg1, msg2);
+    draw_move_buttons(selected);
+
+    while (1)
+    {
+        delay(50);  // ~20fps polling
+
+        // Update button edges
+        int bl = btn_left_just();
+        int br = btn_right_just();
+        int bd = btn_down_just();
+        btn_up_just(); // read and discard UP to keep edge detection fresh
+
+        if (state == STATE_PLAYER_TURN)
+        {
+            int move_used = -1;
+
+            // LEFT cycles selection left
+            if (bl) {
+                selected = (selected + 2) % 3;
+                draw_move_buttons(selected);
+            }
+            // RIGHT cycles selection right
+            else if (br) {
+                selected = (selected + 1) % 3;
+                draw_move_buttons(selected);
+            }
+            // DOWN confirms and uses the selected move
+            else if (bd) {
+                move_used = selected;
+            }
+
+            if (move_used >= 0)
+            {
+                int dmg = rand_range(moves[move_used].dmg_lo, moves[move_used].dmg_hi);
+                enemy_hp -= dmg;
+                if (enemy_hp < 0) enemy_hp = 0;
+
+                // Redraw scene
+                draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+                draw_scene(player_hp, enemy_hp);
+
+                // Show what happened
+                show_message("YOU attack!", moves[move_used].flavor);
+                draw_move_buttons(selected);
+                delay(900);
+
+                if (enemy_hp <= 0) {
+                    state = STATE_PLAYER_WIN;
+                } else {
+                    state = STATE_ENEMY_TURN;
+                }
+            }
+        }
+        else if (state == STATE_ENEMY_TURN)
+        {
+            delay(600); // AI "thinking" pause
+
+            int ai_move = rand_range(0, 2);
+            // AI uses Power Surge only when above 50% health (feels smarter)
+            if (ai_move == 2 && enemy_hp < 50) ai_move = rand_range(0, 1);
+
+            int dmg = rand_range(moves[ai_move].dmg_lo, moves[ai_move].dmg_hi);
+            player_hp -= dmg;
+            if (player_hp < 0) player_hp = 0;
+
+            draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+            draw_scene(player_hp, enemy_hp);
+            show_message("ENEMY attacks!", moves[ai_move].flavor);
+            draw_move_buttons(selected);
+            delay(900);
+
+            if (player_hp <= 0) {
+                state = STATE_ENEMY_WIN;
+            } else {
+                state = STATE_PLAYER_TURN;
+                show_message("YOUR TURN", "Choose a move!");
+            }
+        }
+        else if (state == STATE_PLAYER_WIN)
+        {
+            draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+            // Victory screen
+            printTextX2("YOU WIN!", 10, 60, COL_YELLOW, 0);
+            printText("ENEMY defeated!", 10, 85, COL_GREEN, COL_BLACK);
+            // Draw player healthy, enemy gone
+            putImage(50, 95, PLAYER_SPR_W, PLAYER_SPR_H, programmer_front, 0, 0);
+            // loop forever (or press any button to reset)
+            while (!btn_left_just() && !btn_right_just() && !btn_down_just()) {
+                delay(50);
+                btn_up_just(); // flush up too
+            }
+            // Restart
+            player_hp = 100;
+            enemy_hp  = 100;
+            selected  = 0;
+            state     = STATE_PLAYER_TURN;
+            draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+            draw_scene(player_hp, enemy_hp);
+            show_message("YOUR TURN", "Choose a move!");
+            draw_move_buttons(selected);
+        }
+        else if (state == STATE_ENEMY_WIN)
+        {
+            draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+            printTextX2("YOU LOST!", 8, 60, COL_RED, 0);
+            printText("Enemy wins...", 15, 85, COL_GRAY, COL_BLACK);
+            putImage(50, 0, ENEMY_SPR_W, ENEMY_SPR_H, programmer_front, 1, 0);
+            while (!btn_left_just() && !btn_right_just() && !btn_down_just()) {
+                delay(50);
+                btn_up_just();
+            }
+            // Restart
+            player_hp = 100;
+            enemy_hp  = 100;
+            selected  = 0;
+            state     = STATE_PLAYER_TURN;
+            draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+            draw_scene(player_hp, enemy_hp);
+            show_message("YOUR TURN", "Choose a move!");
+            draw_move_buttons(selected);
+        }
+    }
+    return 0;
+}
+
+// ─── Peripheral init (unchanged from original) ───────────────────────────────
+
 void initSysTick(void)
 {
-	SysTick->LOAD = 48000;
-	SysTick->CTRL = 7;
-	SysTick->VAL = 10;
-	__asm(" cpsie i "); // enable interrupts
+    SysTick->LOAD = 48000;
+    SysTick->CTRL = 7;
+    SysTick->VAL  = 10;
+    __asm(" cpsie i ");
 }
 void SysTick_Handler(void)
 {
-	milliseconds++;
+    milliseconds++;
 }
 void initClock(void)
 {
-// This is potentially a dangerous function as it could
-// result in a system with an invalid clock signal - result: a stuck system
-        // Set the PLL up
-        // First ensure PLL is disabled
-        RCC->CR &= ~(1u<<24);
-        while( (RCC->CR & (1 <<25))); // wait for PLL ready to be cleared
-        
-// Warning here: if system clock is greater than 24MHz then wait-state(s) need to be
-// inserted into Flash memory interface
-				
-        FLASH->ACR |= (1 << 0);
-        FLASH->ACR &=~((1u << 2) | (1u<<1));
-        // Turn on FLASH prefetch buffer
-        FLASH->ACR |= (1 << 4);
-        // set PLL multiplier to 12 (yielding 48MHz)
-        RCC->CFGR &= ~((1u<<21) | (1u<<20) | (1u<<19) | (1u<<18));
-        RCC->CFGR |= ((1<<21) | (1<<19) ); 
-
-        // Need to limit ADC clock to below 14MHz so will change ADC prescaler to 4
-        RCC->CFGR |= (1<<14);
-
-        // and turn the PLL back on again
-        RCC->CR |= (1<<24);        
-        // set PLL as system clock source 
-        RCC->CFGR |= (1<<1);
+    RCC->CR &= ~(1u<<24);
+    while((RCC->CR & (1<<25)));
+    FLASH->ACR |= (1<<0);
+    FLASH->ACR &= ~((1u<<2) | (1u<<1));
+    FLASH->ACR |= (1<<4);
+    RCC->CFGR &= ~((1u<<21)|(1u<<20)|(1u<<19)|(1u<<18));
+    RCC->CFGR |= ((1<<21)|(1<<19));
+    RCC->CFGR |= (1<<14);
+    RCC->CR   |= (1<<24);
+    RCC->CFGR |= (1<<1);
 }
 void delay(volatile uint32_t dly)
 {
-	uint32_t end_time = dly + milliseconds;
-	while(milliseconds != end_time)
-		__asm(" wfi "); // sleep
+    uint32_t end_time = dly + milliseconds;
+    while (milliseconds != end_time)
+        __asm(" wfi ");
 }
-
 void enablePullUp(GPIO_TypeDef *Port, uint32_t BitNumber)
 {
-	Port->PUPDR = Port->PUPDR &~(3u << BitNumber*2); // clear pull-up resistor bits
-	Port->PUPDR = Port->PUPDR | (1u << BitNumber*2); // set pull-up bit
+    Port->PUPDR &= ~(3u << BitNumber*2);
+    Port->PUPDR |=  (1u << BitNumber*2);
 }
 void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode)
 {
-	/*
-	*/
-	uint32_t mode_value = Port->MODER;
-	Mode = Mode << (2 * BitNumber);
-	mode_value = mode_value & ~(3u << (BitNumber * 2));
-	mode_value = mode_value | Mode;
-	Port->MODER = mode_value;
+    uint32_t v = Port->MODER;
+    v &= ~(3u  << (BitNumber*2));
+    v |=  (Mode << (BitNumber*2));
+    Port->MODER = v;
 }
 int isInside(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t px, uint16_t py)
 {
-	// checks to see if point px,py is within the rectange defined by x,y,w,h
-	uint16_t x2,y2;
-	x2 = x1+w;
-	y2 = y1+h;
-	int rvalue = 0;
-	if ( (px >= x1) && (px <= x2))
-	{
-		// ok, x constraint met
-		if ( (py >= y1) && (py <= y2))
-			rvalue = 1;
-	}
-	return rvalue;
+    return (px >= x1 && px <= x1+w && py >= y1 && py <= y1+h);
 }
-
 void setupIO()
 {
-	RCC->AHBENR |= (1 << 18) + (1 << 17); // enable Ports A and B
-	display_begin();
-	pinMode(GPIOB,4,0);
-	pinMode(GPIOB,5,0);
-	pinMode(GPIOA,8,0);
-	pinMode(GPIOA,11,0);
-	enablePullUp(GPIOB,4);
-	enablePullUp(GPIOB,5);
-	enablePullUp(GPIOA,11);
-	enablePullUp(GPIOA,8);
+    RCC->AHBENR |= (1<<18)|(1<<17);
+    display_begin();
+    pinMode(GPIOB,4,0); pinMode(GPIOB,5,0);
+    pinMode(GPIOA,8,0); pinMode(GPIOA,11,0);
+    enablePullUp(GPIOB,4); enablePullUp(GPIOB,5);
+    enablePullUp(GPIOA,11); enablePullUp(GPIOA,8);
 }
