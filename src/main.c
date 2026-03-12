@@ -35,9 +35,9 @@ const uint16_t programmer_front[]=
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 // Player character: bottom-left (as original)
-#define PLAYER_X       20
-#define PLAYER_Y       75
-#define PLAYER_SPR_W   31
+#define PLAYER_X       20     //location of the players x coordinate
+#define PLAYER_Y       75     //location of the players y coordinate
+#define PLAYER_SPR_W   31     
 #define PLAYER_SPR_H   60
 
 // Enemy character: top-right (as original, flipped)
@@ -80,8 +80,8 @@ typedef enum {
 } GameState;
 
 // ─── Pseudo-random helper ────────────────────────────────────────────────────
-static uint32_t rng_seed = 12345;
-uint32_t rand_next(void)
+static uint32_t rng_seed = 12345;    
+uint32_t rand_next(void)            //This is the RNG for the computer attack
 {
     rng_seed ^= rng_seed << 13;
     rng_seed ^= rng_seed >> 17;
@@ -93,12 +93,7 @@ int rand_range(int lo, int hi) // inclusive
     return lo + (int)(rand_next() % (uint32_t)(hi - lo + 1));
 }
 
-// ─── Button reading ──────────────────────────────────────────────────────────
-// Physical buttons (active-low, pull-ups enabled in setupIO):
-//   PB4  = LEFT   -> cycle move selection left
-//   PB5  = RIGHT  -> cycle move selection right
-//   PA8  = DOWN   -> confirm / use selected move
-//   PA11 = UP     -> (unused, reserved)
+// ─── Button reading ─────────────────────────────────────────────────────────
 #define BTN_PRESSED(port, pin)  (!((port)->IDR & (1u << (pin))))
 
 int btn_left_prev  = 0;
