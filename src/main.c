@@ -236,22 +236,22 @@ const Move programmer_moves[3] = {
     { "HACK",        5, 35, "hacks hard!"    },
     { "POWER SURGE",30, 45, "POWER SURGE!!"  },
 };
-const Move chef[3] = {
+const Move chef_moves[3] = {
     {"Idiot Sandwich", 15, 25, "Gordon's Proud"},
     {"Wooden Spoon", 5, 35, "Childhood Trauma"},
     {"Chef's Special", 30, 45, "Delicious!"},
 };
-const Move garda[3] = {
+const Move garda_moves[3] = {
     { "Penalty Points",      15, 25, "Drive Properly" },
     { "Breathalizer",        5, 35, "Blow me!"    },
     { "Bodycam Off",30, 45, "Guards are to be Rang"  },
 };
-const Move builder[3] = {
+const Move builder_moves[3] = {
     { "Hammer Strike",      15, 25, "Hit The Nail On The Head" },
     { "Planning Permission",        5, 35, "Denied!!!"    },
     { "JCB",30, 45, "Dig This!"  },
 };
-const Move financier[3] = {
+const Move financier_moves[3] = {
     { "Wall Street Crash",      15, 25, "Bye Bye Savings" },
     { "Party Time",        5, 35, "Release The Files"    },
     { "Investment Advice",30, 45, "Make Money!"  },
@@ -267,6 +267,8 @@ void start_screen(int selected){
 	printText(selected == 0 ? "> START " : " START ", 30, 80, COL_GRAY, COL_BLACK);
 	printText(selected == 1 ? "> CREDITS " : " CREDITS ", 30, 90, COL_GRAY, COL_BLACK);
 	printText(selected == 2 ? "> QUIT " : " QUIT ", 30, 100, COL_GRAY, COL_BLACK);
+    putImage(50, 95, PLAYER_SPR_W, PLAYER_SPR_H, builder, 0, 0);
+
 
 }
 
@@ -277,7 +279,7 @@ void credits(){
 	delay(50);
 	printTextX2("Developers", 0, 20, COL_YELLOW, COL_BLACK);
 	printText("Georgin Jobin", 0, 80, COL_WHITE, COL_BLACK);
-	printText("Jamie Bailey Morton", 0, 90, COL_WHITE, COL_BLACK);
+	printText("Jamie MB", 0, 90, COL_WHITE, COL_BLACK);
 	printText("Joe Rafter", 0, 100, COL_WHITE, COL_BLACK);
 
 	btn_down_just();
@@ -289,7 +291,7 @@ void credits(){
 
 		if (btn_down_just() || btn_left_just() || btn_right_just() || btn_up_just()) {
 
-		return 1;
+		return;
 
 	}
 
