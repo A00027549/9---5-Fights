@@ -97,6 +97,8 @@ const uint16_t teacher[]=
 #define MSG_X          2
 #define MSG_Y          66
 
+#define NUM_MENU_ITEMS 3
+
 // ─── Game state ──────────────────────────────────────────────────────────────
 typedef enum {
     STATE_PLAYER_TURN,
@@ -175,7 +177,7 @@ uint16_t hp_color(int hp, int max)
 
 void draw_move_buttons(int selected)
 {
-    const char *names[3] = {"PUNCH", "HACK ", "SURGE"};
+    const char *names[3] = {"CODE", "HACK ", "SURGE"};
     for (int i = 0; i < 3; i++) {
         int bx = MOVE1_X + i * 42;
         uint16_t bg = (i == selected) ? COL_LTBLUE : COL_DARKGRAY;
@@ -227,9 +229,9 @@ void show_message(const char *line1, const char *line2)
 }
 
 // ─── Moves ───────────────────────────────────────────────────────────────────
-// Move indices: 0=Punch, 1=Hack, 2=Power Surge
+// Move indices: 0=CODE, 1=Hack, 2=Power Surge
 // Damage: randomised per move
-//   Punch:      15-25  (reliable)
+//   CODE:      15-25  (reliable)
 //   Hack:       5-35   (high variance)
 //   Power Surge:30-45  (heavy hit, costs nothing here)
 
@@ -274,18 +276,27 @@ const Move teacher_moves[3] = {
 
 
 
-void start_screen(int selected){
+void draw_start_screen_full(void)
+{
+    draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+    printTextX2("9-5", 38, 20, COL_YELLOW, COL_BLACK);
+    printTextX2("FIGHTS!", 18, 40, COL_WHITE, COL_BLACK);
+    // draw all three items unselected first
+    printText(" START  ", 30, 80, COL_GRAY, COL_BLACK);
+    printText(" CREDITS", 30, 90, COL_GRAY, COL_BLACK);
+    printText(" QUIT   ", 30, 100, COL_GRAY, COL_BLACK);
+}
 
-	draw_filled_rect(0, 0, 128, 160, COL_BLACK);
-
-	printTextX2("9-5", 38, 20, COL_YELLOW, COL_BLACK);
-	printTextX2("FIGHTS!", 18, 40, COL_WHITE, COL_BLACK);
-
-	printText(selected == 0 ? "> START " : " START ", 30, 80, COL_GRAY, COL_BLACK);
-	printText(selected == 1 ? "> CREDITS " : " CREDITS ", 30, 90, COL_GRAY, COL_BLACK);
-	printText(selected == 2 ? "> QUIT " : " QUIT ", 30, 100, COL_GRAY, COL_BLACK);
-
-
+void update_start_screen(int old_select, int new_select)
+{
+    const char *labels[3] = {" START  ", " CREDITS", " QUIT   "};
+    // clear old selection
+    printText(labels[old_select], 30, 80 + old_select * 10, COL_GRAY, COL_BLACK);
+    // draw new selection
+    printText(labels[new_select], 30, 80 + new_select * 10, COL_WHITE, COL_BLACK);
+    // draw arrows
+    printText(" ", 22, 80 + old_select * 10, COL_BLACK, COL_BLACK); // erase old arrow
+    printText(">", 22, 80 + new_select * 10, COL_WHITE, COL_BLACK); // draw new arrow
 }
 
 void credits(){
@@ -571,44 +582,39 @@ int main(void)
     initSysTick();
     setupIO();
 
-	int menu_select = 0;
-	start_screen(menu_select);
+int menu_select = 0;
+    draw_start_screen_full();
+    update_start_screen(0, 0);
 
-	while (1) {
+    while (1) {
+        delay(50);
+        btn_left_just(); // flush
 
-		delay(50);
-		btn_left_just();
-		btn_right_just();
+        if (btn_up_just()) {
+            int old = menu_select;
+            menu_select = (menu_select + NUM_MENU_ITEMS - 1) % NUM_MENU_ITEMS;
+            update_start_screen(old, menu_select);
+        }
 
-		if (btn_up_just()) {
+        if (btn_down_just()) {
+            int old = menu_select;
+            menu_select = (menu_select + 1) % NUM_MENU_ITEMS;
+            update_start_screen(old, menu_select);
+        }
 
-			menu_select = (menu_select + 1) % 3;
-			start_screen(menu_select);
-
-		}
-
-		if (btn_down_just()) {
-
-			if (menu_select == 0) {
-
-				character_select();
+        if (btn_right_just()) {
+            if (menu_select == 0) {
+                character_select();
                 break;
-
-			} else if (menu_select == 1) {
-				
-				credits();
-				start_screen(menu_select);
-
-			} else if (menu_select == 2) {
-		
-				start_screen(menu_select);
-
-			}
-			
-		}
-
-	}
-
+            } else if (menu_select == 1) {
+                credits();
+                draw_start_screen_full();
+                update_start_screen(menu_select, menu_select);
+            }
+            // menu_select == 2 (QUIT) does nothing
+        }
+    }
+    
     // Seed RNG with milliseconds tick (small but nonzero after init)
     delay(10);
     rng_seed += milliseconds;
