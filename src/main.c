@@ -119,7 +119,7 @@ void draw_filled_rect(int x, int y, int w, int h, uint16_t color)
 // Draw hollow rectangle border using drawLine
 void draw_rect_border(int x, int y, int w, int h, uint16_t color)
 {
-    drawLine(x,         y,         x + w - 1, y,         color); // top
+    drawLine(x,         y,         x + w - 1, y,         color); // top      this draws the border for the hp bar and move buttons
     drawLine(x,         y + h - 1, x + w - 1, y + h - 1, color); // bottom
     drawLine(x,         y,         x,         y + h - 1, color); // left
     drawLine(x + w - 1, y,         x + w - 1, y + h - 1, color); // right
@@ -214,10 +214,31 @@ typedef struct {
     const char *flavor; // shown in message box
 } Move;
 
-const Move moves[3] = {
+// These are the moves that each character can do
+const Move programmer[3] = {
     { "PUNCH",      15, 25, "lands a PUNCH!" },
     { "HACK",        5, 35, "hacks hard!"    },
     { "POWER SURGE",30, 45, "POWER SURGE!!"  },
+};
+const Move chef[3] = {
+    {"Idiot Sandwich", 15, 25, "Gordon's Proud"},
+    {"Wooden Spoon", 5, 35, "Childhood Trauma"},
+    {"Chef's Special", 30, 45, "Delicious!"},
+};
+const Move garda[3] = {
+    { "Penalty Points",      15, 25, "Drive Properly" },
+    { "Breathalizer",        5, 35, "Blow me!"    },
+    { "Bodycam Off",30, 45, "Guards are to be Rang"  },
+};
+const Move builder[3] = {
+    { "Hammer Strike",      15, 25, "Hit The Nail On The Head" },
+    { "Planning Permission",        5, 35, "Denied!!!"    },
+    { "JCB",30, 45, "Dig This!"  },
+};
+const Move financier[3] = {
+    { "Wall Street Crash",      15, 25, "Bye Bye Savings" },
+    { "Party Time",        5, 35, "Release The Files"    },
+    { "Investment Advice",30, 45, "Make Money!"  },
 };
 
 void start_screen(int selected){
@@ -260,6 +281,23 @@ void credits(){
 
 	
 
+}
+
+void character_select(){
+
+    draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+
+    printTextX2("Select Your Character", 0, 20, COL_YELLOW, COL_BLACK);
+    printText("Programmer", 0, 80, COL_WHITE, COL_BLACK);
+    printText("Chef", 0, 90, COL_WHITE, COL_BLACK);
+    printText("Garda", 0, 100, COL_WHITE, COL_BLACK);
+    printText("Builder", 0, 110, COL_WHITE, COL_BLACK);
+    printText("Financier", 0, 120, COL_WHITE, COL_BLACK);
+
+    btn_down_just();
+    btn_up_just();
+    btn_left_just();//this resets the button presses because it regesters as two without this
+    btn_right_just();
 }
 
 
@@ -357,7 +395,7 @@ int main(void)
 
             if (move_used >= 0)
             {
-                int dmg = rand_range(moves[move_used].dmg_lo, moves[move_used].dmg_hi);
+                int dmg = rand_range(programmer[move_used].dmg_lo, programmer[move_used].dmg_hi);
                 enemy_hp -= dmg;
                 if (enemy_hp < 0) enemy_hp = 0;
 
@@ -366,7 +404,7 @@ int main(void)
                 draw_scene(player_hp, enemy_hp);
 
                 // Show what happened
-                show_message("YOU attack!", moves[move_used].flavor);
+                show_message("YOU attack!", programmer[move_used].flavor);
                 draw_move_buttons(selected);
                 delay(900);
 
@@ -385,13 +423,13 @@ int main(void)
             // AI uses Power Surge only when above 50% health (feels smarter)
             if (ai_move == 2 && enemy_hp < 50) ai_move = rand_range(0, 1);
 
-            int dmg = rand_range(moves[ai_move].dmg_lo, moves[ai_move].dmg_hi);
+            int dmg = rand_range(programmer[ai_move].dmg_lo, programmer[ai_move].dmg_hi);
             player_hp -= dmg;
             if (player_hp < 0) player_hp = 0;
 
             draw_filled_rect(0, 0, 128, 160, COL_BLACK);
             draw_scene(player_hp, enemy_hp);
-            show_message("ENEMY attacks!", moves[ai_move].flavor);
+            show_message("ENEMY attacks!", programmer[ai_move].flavor);
             draw_move_buttons(selected);
             delay(900);
 
