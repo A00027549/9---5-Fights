@@ -267,7 +267,6 @@ void start_screen(int selected){
 	printText(selected == 0 ? "> START " : " START ", 30, 80, COL_GRAY, COL_BLACK);
 	printText(selected == 1 ? "> CREDITS " : " CREDITS ", 30, 90, COL_GRAY, COL_BLACK);
 	printText(selected == 2 ? "> QUIT " : " QUIT ", 30, 100, COL_GRAY, COL_BLACK);
-    putImage(50, 95, PLAYER_SPR_W, PLAYER_SPR_H, builder, 0, 0);
 
 
 }
@@ -301,21 +300,208 @@ void credits(){
 
 }
 
-void character_select(){
+// ─── Character Select System ─────────────────────────────────────────────────
 
+#define NUM_CHARS 5
+
+const char *char_names[NUM_CHARS] = {
+    "Programmer",
+    "Chef",
+    "Garda",
+    "Builder",
+    "Financier"
+};
+
+const uint16_t *char_sprites[NUM_CHARS] = {
+    programmer,
+    chef,
+    guard,
+    builder,
+    financier
+};
+
+const Move *char_moves[NUM_CHARS] = {
+    programmer_moves,
+    chef_moves,
+    garda_moves,
+    builder_moves,
+    financier_moves
+};
+
+// 0=unselected, 1=player picked, 2=AI picked
+int char_status[NUM_CHARS];
+
+// Player team and AI team (indices into char_names/sprites/moves)
+int player_team[3];
+int ai_team[3];
+
+void draw_char_select_screen(int cursor)
+{
     draw_filled_rect(0, 0, 128, 160, COL_BLACK);
 
-    printTextX2("Select Your Character", 0, 20, COL_YELLOW, COL_BLACK);
-    printText("Programmer", 0, 80, COL_WHITE, COL_BLACK);
-    printText("Chef", 0, 90, COL_WHITE, COL_BLACK);
-    printText("Garda", 0, 100, COL_WHITE, COL_BLACK);
-    printText("Builder", 0, 110, COL_WHITE, COL_BLACK);
-    printText("Financier", 0, 120, COL_WHITE, COL_BLACK);
+    // Title
+    printTextX2("Pick", 2, 2, COL_YELLOW, COL_BLACK);
+    printTextX2("Char!", 42, 2, COL_YELLOW, COL_BLACK);
 
-    btn_down_just();
-    btn_up_just();
-    btn_left_just();//this resets the button presses because it regesters as two without this
-    btn_right_just();
+    // Controls hint
+    printText("^/v move  > pick", 0, 22, COL_GRAY, COL_BLACK);
+
+    // Character list (left side)
+    for (int i = 0; i < NUM_CHARS; i++) {
+        uint16_t fg;
+        if (char_status[i] == 1)       fg = COL_GREEN;   // player picked
+        else if (char_status[i] == 2)  fg = COL_RED;     // AI picked
+        else if (i == cursor)          fg = COL_WHITE;    // hovering
+        else                           fg = COL_GRAY;     // idle
+
+        // Cursor arrow (only on unchosen characters)
+        if (i == cursor && char_status[i] == 0)
+            printText(">", 0, 34 + i * 12, COL_WHITE, COL_BLACK);
+        else
+            printText(" ", 0, 34 + i * 12, COL_BLACK, COL_BLACK);
+
+        printText(char_names[i], 8, 34 + i * 12, fg, COL_BLACK);
+    }
+
+    // Preview box (right side, 46x58 px)
+    int bx = 80, by = 30, bw = 46, bh = 58;
+    if (char_status[cursor] == 0) {
+        // Draw border around preview
+        draw_rect_border(bx, by, bw, bh, COL_WHITE);
+        // Fill background black inside box
+        draw_filled_rect(bx + 1, by + 1, bw - 2, bh - 2, COL_BLACK);
+        // Draw sprite preview centred in box (sprite is 31 wide)
+        putImage(bx + 7, by + 1, PLAYER_SPR_W, PLAYER_SPR_H, char_sprites[cursor], 0, 0);
+    } else {
+        // Already taken — show greyed box with status text
+        draw_filled_rect(bx, by, bw, bh, COL_DARKGRAY);
+        draw_rect_border(bx, by, bw, bh, COL_GRAY);
+        if (char_status[cursor] == 1) {
+            printText("YOUR", bx + 5, by + 22, COL_GREEN, COL_DARKGRAY);
+            printText("PICK", bx + 5, by + 32, COL_GREEN, COL_DARKGRAY);
+        } else {
+            printText(" AI ", bx + 5, by + 22, COL_RED, COL_DARKGRAY);
+            printText("PICK", bx + 5, by + 32, COL_RED, COL_DARKGRAY);
+        }
+    }
+
+    // Pick counters at bottom
+    int pc = 0, ac = 0;
+    for (int i = 0; i < NUM_CHARS; i++) {
+        if (char_status[i] == 1) pc++;
+        if (char_status[i] == 2) ac++;
+    }
+    char buf[4];
+    printText("You:", 0, 100, COL_GREEN, COL_BLACK);
+    itoa_simple(pc, buf); printText(buf, 26, 100, COL_GREEN, COL_BLACK);
+    printText("/3", 32, 100, COL_GREEN, COL_BLACK);
+
+    printText("AI: ", 0, 110, COL_RED, COL_BLACK);
+    itoa_simple(ac, buf); printText(buf, 26, 110, COL_RED, COL_BLACK);
+    printText("/3", 32, 110, COL_RED, COL_BLACK);
+
+    // Show player's chosen team names so far
+    printText("Team:", 0, 122, COL_WHITE, COL_BLACK);
+    int tx = 0;
+    for (int i = 0; i < NUM_CHARS; i++) {
+        if (char_status[i] == 1) {
+            // Print first 5 chars of name
+            char tmp[6];
+            int j;
+            for (j = 0; j < 5 && char_names[i][j]; j++) tmp[j] = char_names[i][j];
+            tmp[j] = 0;
+            printText(tmp, tx, 132, COL_GREEN, COL_BLACK);
+            tx += 36;
+        }
+    }
+}
+
+// Pick a random unchosen character for the AI
+int ai_pick_random(void)
+{
+    int available[NUM_CHARS];
+    int count = 0;
+    for (int i = 0; i < NUM_CHARS; i++) {
+        if (char_status[i] == 0) available[count++] = i;
+    }
+    if (count == 0) return -1;
+    return available[rand_range(0, count - 1)];
+}
+
+void character_select(void)
+{
+    // Reset state
+    for (int i = 0; i < NUM_CHARS; i++) char_status[i] = 0;
+    int player_picks = 0, ai_picks = 0;
+    int cursor = 0;
+
+    // Flush all buttons
+    btn_down_just(); btn_up_just();
+    btn_left_just(); btn_right_just();
+
+    draw_char_select_screen(cursor);
+
+    while (player_picks < 3)
+    {
+        delay(80);
+
+        int bu = btn_up_just();
+        int bd = btn_down_just();
+        int br = btn_right_just();
+        btn_left_just(); // flush left
+
+        // Navigate up
+        if (bu) {
+            cursor = (cursor + NUM_CHARS - 1) % NUM_CHARS;
+            draw_char_select_screen(cursor);
+        }
+        // Navigate down
+        if (bd) {
+            cursor = (cursor + 1) % NUM_CHARS;
+            draw_char_select_screen(cursor);
+        }
+
+        // RIGHT button = confirm pick (only if character is unchosen)
+        if (br && char_status[cursor] == 0) {
+            char_status[cursor] = 1;
+            player_team[player_picks++] = cursor;
+            draw_char_select_screen(cursor);
+            delay(400);
+
+            // AI picks immediately after (if still needed)
+            if (ai_picks < 3) {
+                delay(500); // AI "thinking" pause
+                int ai_choice = ai_pick_random();
+                if (ai_choice >= 0) {
+                    char_status[ai_choice] = 2;
+                    ai_team[ai_picks++] = ai_choice;
+                    draw_char_select_screen(cursor);
+                    delay(600);
+                }
+            }
+        }
+    }
+
+    // Draft complete — show summary screen
+    draw_filled_rect(0, 0, 128, 160, COL_BLACK);
+    printTextX2("READY!", 18, 20, COL_YELLOW, COL_BLACK);
+
+    printText("Your team:", 2, 55, COL_GREEN, COL_BLACK);
+    for (int i = 0; i < 3; i++)
+        printText(char_names[player_team[i]], 2, 65 + i * 10, COL_GREEN, COL_BLACK);
+
+    printText("AI team:", 2, 102, COL_RED, COL_BLACK);
+    for (int i = 0; i < 3; i++)
+        printText(char_names[ai_team[i]], 2, 112 + i * 10, COL_RED, COL_BLACK);
+
+    printText("Press > to fight!", 2, 148, COL_GRAY, COL_BLACK);
+
+    // Flush then wait for confirm
+    btn_down_just(); btn_up_just(); btn_left_just(); btn_right_just();
+    while (!btn_right_just() && !btn_down_just()) {
+        delay(50);
+        btn_up_just(); btn_left_just();
+    }
 }
 
 
