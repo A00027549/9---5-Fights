@@ -347,7 +347,8 @@ int main(void)
 
 			if (menu_select == 0) {
 
-				break;
+				character_select();
+                break;
 
 			} else if (menu_select == 1) {
 				
