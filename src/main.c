@@ -275,8 +275,6 @@ const Move teacher_moves[3] = {
 };
 
 
-
-
 void draw_start_screen_full(void)
 {
     draw_filled_rect(0, 0, 128, 160, COL_BLACK);
@@ -301,8 +299,8 @@ void update_start_screen(int old_select, int new_select)
     printText(">", 22, 80 + new_select * 10, COL_WHITE, COL_BLACK); // draw new arrow
 }
 
-void credits(){
-
+void credits()
+{
 	draw_filled_rect(0, 0, 128, 160, COL_BLACK);
 
 	delay(50);
@@ -325,7 +323,6 @@ void credits(){
 	}
 
 	}
-
 }
 
 // ─── Character Select System ─────────────────────────────────────────────────
@@ -483,7 +480,6 @@ void character_select(void)
         btn_left_just(); // flush left
 
         // Navigate up
-// Navigate up
         if (bu) {
             int old = cursor;
             cursor = (cursor + 1) % NUM_CHARS;

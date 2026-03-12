@@ -25,8 +25,6 @@ static void ResetLow(void);
 static void ResetHigh(void);
 
 
-
-
 void display_begin()
 {
 
