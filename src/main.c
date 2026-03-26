@@ -1,4 +1,4 @@
-#include <stm32f031x6.h>//the weather in very good today !!!
+#include <stm32f031x6.h>
 #include "display.h"
 
 void initClock(void);
@@ -10,9 +10,97 @@ int isInside(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t px, uint
 void enablePullUp(GPIO_TypeDef *Port, uint32_t BitNumber);
 void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode);
 
+// ─── Colours ─────────────────────────────────────────────────────────────────
+#define COL_BLACK    RGBToWord(0,0,0)
+#define COL_WHITE    RGBToWord(0xFF,0xFF,0xFF)
+#define COL_YELLOW   RGBToWord(0xFF,0xFF,0)
+#define COL_RED      RGBToWord(0xFF,0,0)
+#define COL_GREEN    RGBToWord(0,0xFF,0)
+#define COL_BLUE     RGBToWord(0,0,0xFF)
+#define COL_CYAN     RGBToWord(0,0xFF,0xFF)
+#define COL_GRAY     RGBToWord(0x80,0x80,0x80)
+#define COL_DARKGRAY RGBToWord(0x30,0x30,0x30)
+#define COL_ORANGE   RGBToWord(0xFF,0x88,0)
+#define COL_PURPLE   RGBToWord(0xAA,0,0xFF)
+#define COL_LTBLUE   RGBToWord(0x40,0x80,0xFF)
+
 volatile uint32_t milliseconds;
 
-// ─── Sprite Data ────────────────────────────────────────────────────────────
+// ─── God Mode ─────────────────────────────────────────────────────────────────
+static int god_mode = 0;
+
+// ─── USART1 helpers ──────────────────────────────────────────────────────────
+// TX = PA9  (AF1)   RX = PA10 (AF1)   9600-8N1 @ 48 MHz
+void initUSART1(void)
+{
+    // Enable clocks
+    RCC->AHBENR  |= (1u << 17);          // GPIOA
+    RCC->APB2ENR |= (1u << 14);          // USART1
+
+    // PA9  → AF1 (TX)
+    GPIOA->MODER  &= ~(3u << (9*2));
+    GPIOA->MODER  |=  (2u << (9*2));
+    GPIOA->AFR[1] &= ~(0xFu << ((9-8)*4));
+    GPIOA->AFR[1] |=  (1u   << ((9-8)*4));
+
+    // PA10 → AF1 (RX)
+    GPIOA->MODER  &= ~(3u << (10*2));
+    GPIOA->MODER  |=  (2u << (10*2));
+    GPIOA->AFR[1] &= ~(0xFu << ((10-8)*4));
+    GPIOA->AFR[1] |=  (1u   << ((10-8)*4));
+
+    // 9600 baud from 48 MHz: BRR = 48000000/9600 = 5000
+    USART1->BRR = 5000;
+    USART1->CR1 = (1u << 3) | (1u << 2) | (1u << 0); // TE | RE | UE
+}
+
+// Returns the received byte, or -1 if nothing waiting
+int usart_getchar(void)
+{
+    if (USART1->ISR & (1u << 5))         // RXNE set?
+        return (int)(USART1->RDR & 0xFF);
+    return -1;
+}
+
+// ─── Cheat-code state machine ─────────────────────────────────────────────────
+// Full sequence the user must type: i  9  5  f  i  g  h  t  s
+// The player presses 'i' to open the prompt, then types "95fights"
+static const char cheat_seq[] = "i95fights";   // 9 chars
+static int cheat_pos = 0;                       // how far through we are
+
+// Call this every frame while on the main-menu screen.
+// Returns 1 the moment God Mode is newly activated, 0 otherwise.
+int check_cheat_input(void)
+{
+    int c = usart_getchar();
+    if (c < 0) return 0;
+
+    if (c == (unsigned char)cheat_seq[cheat_pos]) {
+        cheat_pos++;
+        if (cheat_pos == 9) {           // full sequence matched
+            cheat_pos = 0;
+            god_mode  = 1;
+            return 1;
+        }
+    } else {
+        // Wrong key — restart, but check if this key starts a new attempt
+        cheat_pos = 0;
+        if (c == (unsigned char)cheat_seq[0]) cheat_pos = 1;
+    }
+    return 0;
+}
+
+// Overlay "God mode activated" for ~1.5 s then redraw the menu
+void show_god_mode_message(void)
+{
+    // Draw a highlight box behind the text so it pops
+    draw_filled_rect(4, 56, 120, 18, COL_YELLOW);
+    draw_rect_border(4, 56, 120, 18, COL_WHITE);
+    printText("GOD MODE ACTIVATED", 6, 62, COL_BLACK, COL_YELLOW);
+    delay(1500);
+}
+
+// ─── Sprite Data ─────────────────────────────────────────────────────────────
 
 const uint16_t programmer[]=
 {
@@ -41,19 +129,6 @@ const uint16_t teacher[]=
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,48310,48310,24535,48310,48310,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5180,5180,61307,61307,61307,24535,61307,61307,61307,5180,5180,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5180,61307,27349,27349,65535,61307,27349,27349,65535,61307,5180,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,61307,61307,27349,27349,65535,61307,27349,27349,65535,61307,61307,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,61307,65535,65535,65535,61307,65535,65535,65535,61307,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,61307,61307,61307,24535,61307,61307,61307,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,48310,24535,24535,24535,48310,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,48310,48310,48310,48310,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,48310,48310,24535,24535,24535,24535,24535,48310,48310,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,48310,48310,48310,48310,48310,48310,48310,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,65279,65279,48310,48310,48310,65279,65279,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,65279,65279,65279,48310,65279,65279,65279,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43884,43884,43884,65279,65279,65279,65279,65279,43884,43884,43884,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,43884,43884,65279,65279,43884,43884,43884,43884,43884,43884,43884,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,0,0,0,0,0,0,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,0,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,51275,51275,43884,43884,43884,43884,43884,43884,43884,51275,51275,43884,43884,43884,43884,43884,43884,43884,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,51275,51275,43884,43884,43884,43884,43884,43884,43884,51275,51275,43884,43884,43884,43884,43884,43884,43884,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,51275,51275,43884,43884,43884,43884,43884,43884,43884,51275,51275,43884,43884,43884,43884,43884,43884,43884,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,51275,51275,51275,43884,43884,43884,43884,43884,43884,43884,51275,51275,51275,43884,43884,43884,24535,24535,24535,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,51275,51275,51275,43884,43884,43884,43884,43884,43884,43884,51275,51275,51275,43884,43884,43884,24535,24535,24535,0,0,0,0,0,0,24535,24535,24535,43884,43884,43884,51275,51275,51275,43884,43884,43884,43884,43884,43884,43884,51275,51275,51275,0,0,24535,24535,24535,24535,24535,24535,0,0,0,0,24535,24535,24535,24535,0,0,0,51275,51275,51275,43884,43884,43884,43884,43884,43884,51275,51275,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,0,0,24535,24535,24535,24535,0,0,0,51275,51275,51275,43884,43884,43884,43884,43884,43884,51275,51275,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,51275,43884,43884,43884,43884,43884,51275,51275,51275,0,0,0,0,24535,24535,24535,24535,24535,24535,0,24535,24535,24535,24535,24535,24535,0,0,0,0,0,51275,51275,51275,51275,51275,51275,51275,51275,51275,0,0,0,0,24535,24535,24535,24535,24535,24535,0,24535,24535,24535,24535,24535,24535,0,0,0,0,0,51275,51275,51275,51275,51275,51275,51275,51275,51275,0,0,0,0,24535,24535,24535,24535,24535,0,0,0,0,24535,24535,24535,0,0,0,0,36582,36582,36582,51884,51884,51884,51884,51884,51884,36582,36582,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,36582,36582,51884,51884,51884,36582,36582,36582,51884,51884,51884,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,36582,36582,51884,51884,51884,36582,36582,36582,51884,51884,51884,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,36582,36582,51884,51884,51884,36582,36582,36582,51884,51884,51884,51884,36582,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,36582,36582,36582,51884,36582,36582,36582,0,0,36582,51884,51884,51884,36582,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,36582,36582,36582,51884,36582,36582,36582,0,0,36582,51884,51884,51884,36582,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,36582,51884,51884,51884,36582,36582,0,0,0,36582,51884,51884,51884,36582,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,36582,51884,51884,51884,36582,36582,0,0,0,36582,51884,51884,51884,36582,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,36582,51884,51884,51884,36582,36582,0,0,0,36582,51884,51884,51884,36582,36582,0,0,0,0,0,0,0,0,0,0,0,0,0,0,38988,38988,53563,53563,53563,53563,38988,38988,0,0,0,36582,51884,51884,51884,38988,38988,0,0,0,0,0,0,0,0,0,0,0,38988,38988,38988,53563,53563,53563,53563,53563,53563,38988,38988,0,0,0,38988,53563,53563,53563,53563,53563,38988,38988,38988,0,0,0,0,0,0,0,0,38988,38988,53563,53563,53563,53563,53563,53563,53563,38988,38988,0,0,0,38988,53563,53563,53563,53563,53563,38988,38988,38988,0,0,0,0,0,0,0,0,38988,38988,38988,38988,38988,38988,38988,38988,38988,0,0,0,0,0,38988,38988,38988,38988,38988,38988,38988,38988,38988,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 };
 
-// ─── Colours ─────────────────────────────────────────────────────────────────
-#define COL_BLACK    RGBToWord(0,0,0)
-#define COL_WHITE    RGBToWord(0xFF,0xFF,0xFF)
-#define COL_YELLOW   RGBToWord(0xFF,0xFF,0)
-#define COL_RED      RGBToWord(0xFF,0,0)
-#define COL_GREEN    RGBToWord(0,0xFF,0)
-#define COL_BLUE     RGBToWord(0,0,0xFF)
-#define COL_CYAN     RGBToWord(0,0xFF,0xFF)
-#define COL_GRAY     RGBToWord(0x80,0x80,0x80)
-#define COL_DARKGRAY RGBToWord(0x30,0x30,0x30)
-#define COL_ORANGE   RGBToWord(0xFF,0x88,0)
-#define COL_PURPLE   RGBToWord(0xAA,0,0xFF)
-#define COL_LTBLUE   RGBToWord(0x40,0x80,0xFF)
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 #define PLAYER_X       20
@@ -386,10 +461,8 @@ void credits(void)
 
 // ─── Battle drawing helpers ───────────────────────────────────────────────────
 
-// Draw the move buttons using the current active character's move names
 void draw_move_buttons(int selected, const Move *moves)
 {
-    // Shorten move names to 5 chars for the button
     char labels[3][6];
     for (int i = 0; i < 3; i++) {
         int j;
@@ -403,26 +476,20 @@ void draw_move_buttons(int selected, const Move *moves)
         draw_rect_border(bx, MOVE_Y, MOVE_W, MOVE_H, COL_WHITE);
         printText(labels[i], bx + 2, MOVE_Y + 2, COL_WHITE, bg);
     }
+    // Show God Mode indicator on the move bar if active
+    if (god_mode) {
+        printText("x10", 110, MOVE_Y + 2, COL_YELLOW, COL_BLACK);
+    } else {
+        printText("   ", 110, MOVE_Y + 2, COL_BLACK, COL_BLACK);
+    }
     printText("<  CONFIRM  >", 2, MOVE_Y + 12, COL_GRAY, COL_BLACK);
 }
 
-// Draw character counter row: e.g.  "YOU: [P][P][P]"  vs  "AI: [E][E][E]"
-// alive counts shown as filled squares, dead as empty
 void draw_char_counters(int player_idx, int ai_idx)
 {
-    // player_idx = which of the 3 is currently fighting (0,1,2)
-    // ai_idx     = which of the 3 is currently fighting (0,1,2)
-    // characters remaining = 3 - current_idx (current one is still alive)
-
-    // Top-right area: AI remaining chars (above enemy bar region)
-    // Bottom-left area: Player remaining chars (below player name)
-    // We'll put them in the MSG area left/right margins
-
-    // Y = MSG_Y - 10 (just above message box)
     int ay = MSG_Y - 30;
     int py = MSG_Y + 50;
 
-    // Player counter – left side
     printText("C:", 0, ay, COL_RED, COL_BLACK);
     for (int i = 0; i < 3; i++) {
         uint16_t col = (i < (3 - ai_idx)) ? COL_RED : COL_DARKGRAY;
@@ -430,7 +497,6 @@ void draw_char_counters(int player_idx, int ai_idx)
         draw_rect_border(14 + i * 7, ay, 5, 5, COL_WHITE);
     }
 
-    // AI counter – right side
     printText("P:", 70, py, COL_GREEN, COL_BLACK);
     for (int i = 0; i < 3; i++) {
         uint16_t col = (i < (3 - player_idx)) ? COL_GREEN : COL_DARKGRAY;
@@ -445,15 +511,12 @@ void draw_scene(int player_hp, int enemy_hp,
 {
     char buf[14];
 
-    // Sprites
     putImage(PLAYER_X, PLAYER_Y, PLAYER_SPR_W, PLAYER_SPR_H, p_sprite, 0, 0);
     putImage(ENEMY_X,  ENEMY_Y,  ENEMY_SPR_W,  ENEMY_SPR_H,  e_sprite, 1, 0);
 
-    // HP bars
     draw_hp_bar(PLAYER_HP_BAR_X, PLAYER_HP_BAR_Y, player_hp, 100, hp_color(player_hp, 100));
     draw_hp_bar(ENEMY_HP_BAR_X,  ENEMY_HP_BAR_Y,  enemy_hp,  100, hp_color(enemy_hp,  100));
 
-    // HP numbers
     buf[0]='H'; buf[1]='P'; buf[2]=':';
     itoa_simple(player_hp, buf+3);
     printText(buf, PLAYER_HP_BAR_X, PLAYER_HP_BAR_Y - 8, COL_WHITE, COL_BLACK);
@@ -462,7 +525,6 @@ void draw_scene(int player_hp, int enemy_hp,
     itoa_simple(enemy_hp, buf+3);
     printText(buf, ENEMY_HP_BAR_X, ENEMY_HP_BAR_Y + 7, COL_WHITE, COL_BLACK);
 
-    // Character counters
     draw_char_counters(player_char_idx, ai_char_idx);
 }
 
@@ -477,7 +539,6 @@ void show_end_screen(int player_won)
         for (int i = 0; i < 3; i++) {
             putImage(2 + i * 40, 40, PLAYER_SPR_W, PLAYER_SPR_H,
                      char_sprites[player_team[i]], 0, 0);
-            // small name under sprite
             char tmp[5]; int j;
             for (j = 0; j < 4 && char_names[player_team[i]][j]; j++)
                 tmp[j] = char_names[player_team[i]][j];
@@ -528,12 +589,15 @@ int main(void)
     initSysTick();
     setupIO();
 
-    // Seed RNG once
     delay(10);
     rng_seed += milliseconds;
 
 game_start:
     // ── Main Menu ──
+    // Reset god_mode each time we return to the menu so a new run is clean
+    god_mode = 0;
+    cheat_pos = 0;
+
     {
         int menu_select = 0;
         draw_start_screen_full();
@@ -542,6 +606,14 @@ game_start:
         while (1) {
             delay(50);
             btn_left_just();
+
+            // ── Cheat code check every frame while in main menu ──
+            if (check_cheat_input()) {
+                // Sequence matched — show the message then redraw the menu
+                show_god_mode_message();
+                draw_start_screen_full();
+                update_start_screen(menu_select, menu_select);
+            }
 
             if (btn_down_just()) {
                 int old = menu_select;
@@ -570,21 +642,19 @@ game_start:
 
     // ── Battle ──
     {
-        int player_char_idx = 0;   // which slot of player_team is active (0,1,2)
-        int ai_char_idx     = 0;   // which slot of ai_team is active
+        int player_char_idx = 0;
+        int ai_char_idx     = 0;
 
         int player_hp = 100;
         int enemy_hp  = 100;
         int selected  = 0;
         GameState state = STATE_PLAYER_TURN;
 
-        // Convenience pointers — updated whenever character switches
         const uint16_t *p_sprite = char_sprites[player_team[0]];
         const uint16_t *e_sprite = char_sprites[ai_team[0]];
         const Move     *p_moves  = char_moves[player_team[0]];
         const Move     *e_moves  = char_moves[ai_team[0]];
 
-        // Initial draw
         draw_filled_rect(0, 0, 128, 160, COL_BLACK);
         draw_scene(player_hp, enemy_hp, p_sprite, e_sprite, player_char_idx, ai_char_idx);
         show_message("YOUR TURN", "Choose a move!");
@@ -608,6 +678,10 @@ game_start:
 
                 if (move_used >= 0) {
                     int dmg = rand_range(p_moves[move_used].dmg_lo, p_moves[move_used].dmg_hi);
+
+                    // ── God Mode: multiply damage by 10 ──
+                    if (god_mode) dmg *= 10;
+
                     enemy_hp -= dmg;
                     if (enemy_hp < 0) enemy_hp = 0;
 
@@ -618,17 +692,14 @@ game_start:
                     delay(900);
 
                     if (enemy_hp <= 0) {
-                        // Enemy character KO'd
                         ai_char_idx++;
                         if (ai_char_idx >= 3) {
                             state = STATE_PLAYER_WIN;
                         } else {
-                            // Switch to next AI character
                             enemy_hp  = 100;
                             e_sprite  = char_sprites[ai_team[ai_char_idx]];
                             e_moves   = char_moves[ai_team[ai_char_idx]];
 
-                            // Show KO message
                             draw_filled_rect(0, 0, 128, 160, COL_BLACK);
                             show_message("ENEMY KO'd!", "Next fighter!");
                             draw_filled_rect(40, 40, ENEMY_SPR_W + 10, ENEMY_SPR_H + 10, COL_BLACK);
@@ -664,18 +735,15 @@ game_start:
                 delay(900);
 
                 if (player_hp <= 0) {
-                    // Player character KO'd
                     player_char_idx++;
                     if (player_char_idx >= 3) {
                         state = STATE_ENEMY_WIN;
                     } else {
-                        // Switch to next player character
                         player_hp = 100;
                         p_sprite  = char_sprites[player_team[player_char_idx]];
                         p_moves   = char_moves[player_team[player_char_idx]];
                         selected  = 0;
 
-                        // Show KO message
                         draw_filled_rect(0, 0, 128, 160, COL_BLACK);
                         show_message("YOU were KO'd!", "Next fighter!");
                         putImage(50, 95, PLAYER_SPR_W, PLAYER_SPR_H, p_sprite, 0, 0);
@@ -696,7 +764,7 @@ game_start:
             else if (state == STATE_PLAYER_WIN || state == STATE_ENEMY_WIN)
             {
                 show_end_screen(state == STATE_PLAYER_WIN);
-                goto game_start;  // return to main menu
+                goto game_start;
             }
         }
     }
@@ -758,4 +826,7 @@ void setupIO()
     pinMode(GPIOA,8,0); pinMode(GPIOA,11,0);
     enablePullUp(GPIOB,4); enablePullUp(GPIOB,5);
     enablePullUp(GPIOA,11); enablePullUp(GPIOA,8);
+
+    // Initialise USART1 for USB-serial keyboard input (PA9=TX, PA10=RX, 9600 baud)
+    initUSART1();
 }
