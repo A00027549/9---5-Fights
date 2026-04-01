@@ -15,9 +15,10 @@ def main():
 		return -1
 	
 	ImageFileName=args[1]
-	im=Image.open(ImageFileName)
+	im = Image.open(ImageFileName).convert("RGB")
 	print(im.format,im.size,im.mode)
-	pixels=list(im.getdata())
+
+	pixels = list(im.get_flattened_data())
 	for px in pixels:
 		print(RGBToWord(px[0],px[1],px[2]),end=',')
 	
