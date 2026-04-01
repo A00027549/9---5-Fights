@@ -153,29 +153,29 @@ static const Move programmer_moves[3] = {
     { "SURGE", 30, 45, "POWER SURGE!"  },
 };
 static const Move chef_moves[3] = {
-    { "Sand",  15, 25, "Idiot Sandwich!" },
-    { "Spoon",  5, 35, "Trauma!"         },
-    { "Spec",  30, 45, "Chef Special!"   },
+    { "Sand",  10, 30, "Idiot Sandwich!" },
+    { "Spoon",  15, 33, "Trauma!"         },
+    { "Spec",  7, 43, "Chef Special!"   },
 };
 static const Move garda_moves[3] = {
-    { "Pts",   15, 25, "Drive Right!"  },
-    { "Blow",   5, 35, "Blow me!"      },
-    { "Cam",   30, 45, "Call Guards!"  },
+    { "Pts",   13, 29, "Drive Right!"  },
+    { "Blow",   9, 34, "Blow me!"      },
+    { "Cam",   20, 40, "Call Guards!"  },
 };
 static const Move builder_moves[3] = {
-    { "Hmr",   15, 25, "Hit The Nail!" },
-    { "Prmt",   5, 35, "Denied!!!"     },
-    { "JCB",   30, 45, "Dig This!"     },
+    { "Hmr",   21, 35, "Hit The Nail!" },
+    { "Prmt",   8, 33, "Denied!!!"     },
+    { "JCB",   10, 29, "Dig This!"     },
 };
 static const Move financier_moves[3] = {
     { "Crsh",  15, 25, "Bye Savings!"  },
-    { "Prty",   5, 35, "Release It!"   },
-    { "Invst", 30, 45, "Make Money!"   },
+    { "Prty",   100, 100, "Release It!"   },
+    { "Invst", 23, 25, "Make Money!"   },
 };
 static const Move teacher_moves[3] = {
-    { "Study", 15, 25, "Test Soon!"    },
+    { "Study",  15, 25, "Test Soon!"    },
     { "Rulr",   5, 35, "Hand Out!"     },
-    { "HW",    30, 45, "Get To Work!"  },
+    { "HW",    12, 45, "Get To Work!"  },
 };
 
 // ─── Character tables ────────────────────────────────────────────────────────
