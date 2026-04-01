@@ -1,5 +1,6 @@
 #include <stm32f031x6.h>
 #include "display.h"
+#include "serial.h"
 
 void initClock(void);
 void initSysTick(void);
@@ -147,6 +148,16 @@ void show_message(const char *line1, const char *line2) {
     if (line2) printText(line2, MSG_X, MSG_Y+9,   COL_YELLOW, COL_BLACK);
 }
 
+void serial_log_move(const char *attacker, const char *move_name, int dmg) {
+    char buf[12];
+    eputs(attacker);
+    eputs(" used ");
+    eputs(move_name);
+    eputs(" -> ");
+    printDecimal(dmg);
+    eputs(" dmg\r\n");
+}
+
 // ─── Moves ───────────────────────────────────────────────────────────────────
 // Shortened flavor strings save ~120 bytes vs originals
 typedef struct { const char *name; int dmg_lo, dmg_hi; const char *flavor; } Move;
@@ -199,6 +210,7 @@ static const Move * const char_moves[NUM_CHARS] = {
 int char_status[NUM_CHARS];
 int player_team[3];
 int ai_team[3];
+int godmode = 0;
 
 // ─── Character Select ─────────────────────────────────────────────────────────
 void update_char_row(int row, int cursor) {
@@ -311,6 +323,47 @@ void update_start_screen(int old_select, int new_select) {
     printText(" ", 22, 80+old_select*10, COL_BLACK, COL_BLACK);
     printText(">", 22, 80+new_select*10, COL_WHITE, COL_BLACK);
 }
+
+void cheat_code_screen(void) {
+    clear_screen();
+    printTextX2("???",    38, 20, COL_YELLOW, COL_BLACK);
+    printText("Serial input...", 5, 60, COL_WHITE, COL_BLACK);
+    printText("Check terminal", 5, 72, COL_GRAY,  COL_BLACK);
+
+    eputs("\r\n=== SECRET SCREEN ===\r\n");
+    eputs("Enter cheat code: ");
+
+    const char *code = "95fights";
+    char input[9];
+    int i;
+    for (i = 0; i < 8; i++) {
+        input[i] = egetchar();
+        eputchar(input[i]);   // echo character back
+    }
+    input[8] = 0;
+    eputs("\r\n");
+
+    int match = 1;
+    for (i = 0; i < 8; i++) {
+        if (input[i] != code[i]) { match = 0; break; }
+    }
+
+    if (match) {
+        godmode = 1;
+        eputs(">>> GODMODE ACTIVATED <<<\r\n");
+        clear_screen();
+        printTextX2("GOD",   28, 25, COL_YELLOW, COL_BLACK);
+        printTextX2("MODE!", 18, 50, COL_YELLOW, COL_BLACK);
+        printText("Activated!", 18, 90, COL_GREEN, COL_BLACK);
+    } else {
+        eputs("Wrong code! Try again.\r\n");
+        clear_screen();
+        printTextX2("WRONG!", 12, 40, COL_RED,   COL_BLACK);
+        printText("Nice try...", 20, 85, COL_WHITE, COL_BLACK);
+    }
+    delay(2000);
+}
+
 void credits(void) {
     clear_screen(); delay(50);
     printTextX2("Credits", 10, 20, COL_YELLOW, COL_BLACK);
@@ -318,9 +371,16 @@ void credits(void) {
     printText("Jamie MB",      0, 90,  COL_WHITE, COL_BLACK);
     printText("Joe Rafter",    0, 100, COL_WHITE, COL_BLACK);
     drain_buttons();
+
+    int up_seen = 0;
     while (1) {
-        if (btn_confirm_just()||btn_down_just()||btn_left_just()||
-            btn_right_just()  ||btn_up_just()) return;
+        delay(50);
+        if (btn_up_just())                        { up_seen = 1; }
+        if (btn_down_just()) {
+            if (up_seen) { cheat_code_screen(); } // secret entry
+            return;
+        }
+        if (btn_confirm_just()) return;
     }
 }
 
@@ -370,6 +430,11 @@ void draw_scene(int player_hp, int enemy_hp,
 
 // ─── End screen — factored to remove duplicated loop code (~100 bytes saved) ──
 void show_end_screen(int player_won) {
+    if (player_won) {
+        eputs("=== PLAYER WINS ===\r\n");
+    } else {
+        eputs("=== AI WINS ===\r\n");
+    }
     clear_screen();
     const int *my_team    = player_won ? player_team : ai_team;
     const int *their_team = player_won ? ai_team     : player_team;
@@ -412,6 +477,8 @@ void show_end_screen(int player_won) {
 // ─── Main ────────────────────────────────────────────────────────────────────
 int main(void) {
     initClock(); initSysTick(); setupIO();
+    initSerial();
+    eputs("9-5 FIGHTS started\r\n");
     delay(10);
     rng_seed += milliseconds;
 
@@ -470,6 +537,7 @@ game_start:
                 else if (bc) { move_used=selected; }
                 if (move_used >= 0) {
                     int dmg=rand_range(p_moves[move_used].dmg_lo,p_moves[move_used].dmg_hi);
+                    serial_log_move("PLAYER", p_moves[move_used].name, dmg);
                     if ((enemy_hp-=dmg) < 0) enemy_hp=0;
                     clear_screen();
                     draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
@@ -477,9 +545,14 @@ game_start:
                     draw_move_buttons(selected,p_moves);
                     delay(900);
                     if (enemy_hp <= 0) {
+                        eputs("ENEMY char KO'd!\r\n");
                         if (++ai_char_idx >= 3) {
                             state=STATE_PLAYER_WIN;
                         } else {
+                            // then if switching:
+                            eputs("ENEMY switched to: ");
+                            eputs(char_names[ai_team[ai_char_idx]]);
+                            eputs("\r\n");
                             enemy_hp=100;
                             e_sprite=char_sprites[ai_team[ai_char_idx]];
                             e_moves =char_moves[ai_team[ai_char_idx]];
@@ -500,6 +573,7 @@ game_start:
                 int ai_move=rand_range(0,2);
                 if (ai_move==2 && enemy_hp<50) ai_move=rand_range(0,1);
                 int dmg=rand_range(e_moves[ai_move].dmg_lo,e_moves[ai_move].dmg_hi);
+                serial_log_move("ENEMY", e_moves[ai_move].name, dmg);
                 if ((player_hp-=dmg) < 0) player_hp=0;
                 clear_screen();
                 draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
@@ -507,9 +581,14 @@ game_start:
                 draw_move_buttons(selected,p_moves);
                 delay(900);
                 if (player_hp <= 0) {
+                    eputs("PLAYER char KO'd!\r\n");
                     if (++player_char_idx >= 3) {
                         state=STATE_ENEMY_WIN;
                     } else {
+                        // then if switching:
+                        eputs("PLAYER switched to: ");
+                        eputs(char_names[player_team[player_char_idx]]);
+                        eputs("\r\n");
                         player_hp=100;
                         p_sprite=char_sprites[player_team[player_char_idx]];
                         p_moves =char_moves[player_team[player_char_idx]];
