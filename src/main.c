@@ -130,6 +130,7 @@ uint16_t hp_color(int hp, int max) {
     if (hp*4 > max)   return COL_ORANGE;
     return COL_RED;
 }
+
 void itoa_simple(int v, char *buf) {
     if (v <= 0) { buf[0]='0'; buf[1]=0; return; }
     int i=0, tmp=v;
@@ -137,6 +138,7 @@ void itoa_simple(int v, char *buf) {
     buf[i]=0;
     for (int a=0,b=i-1; a<b; a++,b--) { char c=buf[a]; buf[a]=buf[b]; buf[b]=c; }
 }
+
 void show_message(const char *line1, const char *line2) {
     draw_filled_rect(0, MSG_Y, 128, 18, COL_BLACK);
     if (line1) printText(line1, MSG_X, MSG_Y,     COL_WHITE,  COL_BLACK);
