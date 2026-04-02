@@ -152,6 +152,32 @@ static void mdelay(uint32_t ms) {
     }
 }
 
+// --- LED Control for PA9, PA10, PA12 ---
+void led_off(int led_number) {
+    switch(led_number) {
+        case 0: GPIOA->BSRR = (1u << 25); break; // PA9
+        case 1: GPIOA->BSRR = (1u << 26); break; // PA10  
+        case 2: GPIOA->BSRR = (1u << 28); break; // PA12
+    }
+}
+
+void led_on(int led_number) {
+    switch(led_number) {
+        case 0: GPIOA->BSRR = (1u << 9); break;  // PA9
+        case 1: GPIOA->BSRR = (1u << 10); break; // PA10
+        case 2: GPIOA->BSRR = (1u << 12); break; // PA12
+    }
+}
+
+void leds_all_off(void) {
+    GPIOA->BSRR = (1u << 25) | (1u << 26) | (1u << 28); // Turn off all LEDs
+}
+
+void leds_all_on(void) {
+    GPIOA->BSRR = (1u << 9) | (1u << 10) | (1u << 12); // Turn on all LEDs
+}
+
+
 void show_message(const char *line1, const char *line2) {
     draw_filled_rect(0, MSG_Y, 128, 18, COL_BLACK);
     if (line1) printText(line1, MSG_X, MSG_Y,     COL_WHITE,  COL_BLACK);
@@ -185,7 +211,7 @@ static const Move chef_moves[3] = {
 };
 static const Move garda_moves[3] = {
     { "Pts",   13, 29, "Drive Right!"  },
-    { "Blow",   9, 34, "Blow me!"      },
+    { "Blow",   9, 34, "Blow This!"      },
     { "Cam",   20, 40, "Call Guards!"  },
 };
 static const Move builder_moves[3] = {
@@ -511,10 +537,12 @@ int main(void) {
 
 game_start:
     {
+        leds_all_on(); 
         int menu_select=0;
         draw_start_screen_full();
         update_start_screen(0,0);
         while (1) {
+            
             delay(50);
             btn_left_just();
             if (btn_down_just()) {
@@ -619,7 +647,14 @@ game_start:
                 delay(900);
                 if (player_hp <= 0) {
                     eputs("PLAYER char KO'd!\r\n");
+                    // --- Turn off an LED when Player loses a character ---
+                    if (player_char_idx == 0) { // First character KO'd?
+                        led_off(0); // Turn off first LED (PA9)
+                    } else if (player_char_idx == 1) { // Second character KO'd?
+                        led_off(1); // Turn off second LED (PA10)
+    }
                     if (++player_char_idx >= 3) {
+                        led_off(2);
                         state=STATE_ENEMY_WIN;
                     } else {
                         // then if switching:
@@ -686,11 +721,23 @@ void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode) {
     v |=  (Mode<<(BitNumber*2));
     Port->MODER=v;
 }
+
 void setupIO(void) {
-    RCC->AHBENR |= (1<<18)|(1<<17);
+    RCC->AHBENR |= (1<<18)|(1<<17); // Enable clocks for GPIOB and GPIOA
+    for(int i = 0; i < 1000000; i++);
     display_begin();
+    // Setup button inputs (unchanged)
     pinMode(GPIOB,4,0); pinMode(GPIOB,5,0);
     pinMode(GPIOA,8,0); pinMode(GPIOA,11,0); pinMode(GPIOA,1,0);
     enablePullUp(GPIOB,4); enablePullUp(GPIOB,5);
     enablePullUp(GPIOA,11); enablePullUp(GPIOA,8); enablePullUp(GPIOA,1);
+
+    
+    // --- Setup LEDs ---
+    // Set PB0, PB6, PB7 as output mode (Mode = 1)
+    pinMode(GPIOA, 9, 1); // Mode 1 = Output
+    pinMode(GPIOA, 10, 1); // Mode 1 = Output
+    pinMode(GPIOA, 12, 1); // Mode 1 = Output
+
+    leds_all_on(); 
 }
