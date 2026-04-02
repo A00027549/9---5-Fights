@@ -1,6 +1,8 @@
 #include <stm32f031x6.h>
 #include "display.h"
 #include "serial.h"
+#include "sound.h"
+#include "musical_notes.h"
 
 void initClock(void);
 void initSysTick(void);
@@ -142,6 +144,14 @@ void itoa_simple(int v, char *buf) {
     for (int a=0,b=i-1; a<b; a++,b--) { char c=buf[a]; buf[a]=buf[b]; buf[b]=c; }
 }
 
+static void mdelay(uint32_t ms) {
+    uint32_t end = milliseconds + ms;
+    while (milliseconds != end) {
+        music_tick(milliseconds);
+        __asm(" wfi ");
+    }
+}
+
 void show_message(const char *line1, const char *line2) {
     draw_filled_rect(0, MSG_Y, 128, 18, COL_BLACK);
     if (line1) printText(line1, MSG_X, MSG_Y,     COL_WHITE,  COL_BLACK);
@@ -154,7 +164,8 @@ void serial_log_move(const char *attacker, const char *move_name, int dmg) {
     eputs(" used ");
     eputs(move_name);
     eputs(" -> ");
-    printDecimal(dmg);
+    itoa_simple(dmg, buf);
+    eputs(buf);
     eputs(" dmg\r\n");
 }
 
@@ -263,7 +274,7 @@ void character_select(void) {
     drain_buttons();
     draw_char_select_screen(cursor);
     while (player_picks < 3) {
-        delay(80);
+        mdelay(80);
         int bu=btn_up_just(), bd=btn_down_just(), bc=btn_confirm_just();
         btn_left_just(); btn_right_just();
         if (bd) {
@@ -279,15 +290,15 @@ void character_select(void) {
         if (bc && char_status[cursor]==0) {
             char_status[cursor]=1; player_team[player_picks++]=cursor;
             update_char_row(cursor,cursor); update_preview_box(cursor);
-            delay(400);
+            mdelay(400);
             if (ai_picks < 3) {
-                delay(500);
+                mdelay(500);
                 int ai_choice=ai_pick_random();
                 if (ai_choice >= 0) {
                     char_status[ai_choice]=2; ai_team[ai_picks++]=ai_choice;
                     update_char_row(ai_choice,cursor);
                     if (ai_choice==cursor) update_preview_box(cursor);
-                    delay(600);
+                    mdelay(600);
                 }
             }
         }
@@ -303,7 +314,7 @@ void character_select(void) {
     printText("A = fight!", 2, 148, COL_GRAY, COL_BLACK);
     drain_buttons();
     while (!btn_confirm_just() && !btn_down_just()) {
-        delay(50); btn_up_just(); btn_left_just(); btn_right_just();
+        mdelay(50); btn_up_just(); btn_left_just(); btn_right_just();
     }
 }
 
@@ -315,6 +326,7 @@ void draw_start_screen_full(void) {
     printText(" START  ", 30, 80,  COL_GRAY, COL_BLACK);
     printText(" CREDITS",30, 90,  COL_GRAY, COL_BLACK);
     printText(" QUIT   ", 30, 100, COL_GRAY, COL_BLACK);
+    music_play(track_menu, len_track_menu, 1);
 }
 void update_start_screen(int old_select, int new_select) {
     static const char * const labels[3] = {" START  "," CREDITS"," QUIT   "};
@@ -329,6 +341,8 @@ void cheat_code_screen(void) {
     printTextX2("???",    38, 20, COL_YELLOW, COL_BLACK);
     printText("Serial input...", 5, 60, COL_WHITE, COL_BLACK);
     printText("Check terminal", 5, 72, COL_GRAY,  COL_BLACK);
+
+    music_play(track_mystery, len_track_mystery, 1);
 
     eputs("\r\n=== SECRET SCREEN ===\r\n");
     eputs("Enter cheat code: ");
@@ -349,23 +363,31 @@ void cheat_code_screen(void) {
     }
 
     if (match) {
+        music_stop(); 
         godmode = 1;
         eputs(">>> GODMODE ACTIVATED <<<\r\n");
+        const MusicNote *t = track_godmode;
+        uint16_t len = len_track_godmode;
+        music_play(t, len, 0);
         clear_screen();
         printTextX2("GOD",   28, 25, COL_YELLOW, COL_BLACK);
         printTextX2("MODE!", 18, 50, COL_YELLOW, COL_BLACK);
         printText("Activated!", 18, 90, COL_GREEN, COL_BLACK);
+        uint32_t end = milliseconds + 2000;
+        while (milliseconds != end) { music_tick(milliseconds); __asm(" wfi "); }
+        music_stop();
     } else {
+        music_stop();  
         eputs("Wrong code! Try again.\r\n");
         clear_screen();
         printTextX2("WRONG!", 12, 40, COL_RED,   COL_BLACK);
         printText("Nice try...", 20, 85, COL_WHITE, COL_BLACK);
     }
-    delay(2000);
+    mdelay(2000); 
 }
 
 void credits(void) {
-    clear_screen(); delay(50);
+    clear_screen(); mdelay(50);
     printTextX2("Credits", 10, 20, COL_YELLOW, COL_BLACK);
     printText("Georgin Jobin", 0, 80,  COL_WHITE, COL_BLACK);
     printText("Jamie MB",      0, 90,  COL_WHITE, COL_BLACK);
@@ -374,7 +396,7 @@ void credits(void) {
 
     int up_seen = 0;
     while (1) {
-        delay(50);
+        mdelay(50);
         if (btn_up_just())                        { up_seen = 1; }
         if (btn_down_just()) {
             if (up_seen) { cheat_code_screen(); } // secret entry
@@ -430,9 +452,12 @@ void draw_scene(int player_hp, int enemy_hp,
 
 // ─── End screen — factored to remove duplicated loop code (~100 bytes saved) ──
 void show_end_screen(int player_won) {
+    music_stop(); 
     if (player_won) {
+        sfx_victory();
         eputs("=== PLAYER WINS ===\r\n");
     } else {
+        sfx_defeat();
         eputs("=== AI WINS ===\r\n");
     }
     clear_screen();
@@ -470,14 +495,16 @@ void show_end_screen(int player_won) {
     printText("Any btn=Menu", 2, 148, COL_GRAY, COL_BLACK);
     drain_buttons();
     while (!btn_confirm_just()&&!btn_left_just()&&!btn_right_just()&&!btn_down_just()) {
-        delay(50); btn_up_just();
+        mdelay(50); btn_up_just();
     }
+    music_play(track_menu, len_track_menu, 1);
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 int main(void) {
     initClock(); initSysTick(); setupIO();
     initSerial();
+    initSound();
     eputs("9-5 FIGHTS started\r\n");
     delay(10);
     rng_seed += milliseconds;
@@ -491,16 +518,19 @@ game_start:
             delay(50);
             btn_left_just();
             if (btn_down_just()) {
+                sfx_menu_move();
                 int old=menu_select;
                 menu_select=(menu_select+NUM_MENU_ITEMS-1)%NUM_MENU_ITEMS;
                 update_start_screen(old,menu_select);
             }
             if (btn_up_just()) {
+                sfx_menu_move();
                 int old=menu_select;
                 menu_select=(menu_select+1)%NUM_MENU_ITEMS;
                 update_start_screen(old,menu_select);
             }
             if (btn_confirm_just()) {
+                sfx_confirm();
                 if (menu_select==0) break;
                 else if (menu_select==1) {
                     credits();
@@ -511,6 +541,9 @@ game_start:
         }
     }
     character_select();
+    music_stop();
+    sfx_battle_start();
+    music_play(track_battle, len_track_battle, 1);
     {
         int player_char_idx=0, ai_char_idx=0;
         int player_hp=100, enemy_hp=100, selected=0;
@@ -526,7 +559,7 @@ game_start:
         draw_move_buttons(selected,p_moves);
 
         while (1) {
-            delay(50);
+            mdelay(50);
             int bl=btn_left_just(), br=btn_right_just(), bc=btn_confirm_just();
             btn_down_just(); btn_up_just();
 
@@ -537,13 +570,15 @@ game_start:
                 else if (bc) { move_used=selected; }
                 if (move_used >= 0) {
                     int dmg=rand_range(p_moves[move_used].dmg_lo,p_moves[move_used].dmg_hi);
+                    if (godmode) dmg *= 10;
                     serial_log_move("PLAYER", p_moves[move_used].name, dmg);
                     if ((enemy_hp-=dmg) < 0) enemy_hp=0;
+                    sfx_player_attack();
                     clear_screen();
                     draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
                     show_message("YOU attack!",p_moves[move_used].flavor);
                     draw_move_buttons(selected,p_moves);
-                    delay(900);
+                    mdelay(900);
                     if (enemy_hp <= 0) {
                         eputs("ENEMY char KO'd!\r\n");
                         if (++ai_char_idx >= 3) {
@@ -559,7 +594,8 @@ game_start:
                             clear_screen();
                             show_message("Enemy KO!","Next!");
                             putImage(50,95,ENEMY_SPR_W,ENEMY_SPR_H,e_sprite,1,0);
-                            delay(1200);
+                            sfx_enemy_ko();
+                            mdelay(1200);
                             clear_screen();
                             draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
                             show_message("YOUR TURN","Choose a move!");
@@ -569,12 +605,13 @@ game_start:
                     } else { state=STATE_ENEMY_TURN; }
                 }
             } else if (state==STATE_ENEMY_TURN) {
-                delay(600);
+                mdelay(600);
                 int ai_move=rand_range(0,2);
                 if (ai_move==2 && enemy_hp<50) ai_move=rand_range(0,1);
                 int dmg=rand_range(e_moves[ai_move].dmg_lo,e_moves[ai_move].dmg_hi);
                 serial_log_move("ENEMY", e_moves[ai_move].name, dmg);
                 if ((player_hp-=dmg) < 0) player_hp=0;
+                sfx_enemy_attack();
                 clear_screen();
                 draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
                 show_message("ENEMY attacks!",e_moves[ai_move].flavor);
@@ -596,6 +633,7 @@ game_start:
                         clear_screen();
                         show_message("You KO'd!","Next!");
                         putImage(50,95,PLAYER_SPR_W,PLAYER_SPR_H,p_sprite,0,0);
+                        sfx_player_ko();
                         delay(1200);
                         clear_screen();
                         draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);

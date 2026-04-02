@@ -109,3 +109,12 @@
 #define A8	7040
 #define AS8_Bb8	7459
 #define B8	7902
+#define GS3_Ab3  208
+#define AS3_Bb3  233
+#define DS3_Eb3  156
+#define A6       1760
+#define G6       1568
+#define F6       1397
+#define E6       1319
+#define D6       1175
+#define C7       2093
