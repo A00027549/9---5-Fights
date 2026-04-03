@@ -251,6 +251,8 @@ int char_status[NUM_CHARS];
 int player_team[3];
 int ai_team[3];
 int godmode = 0;
+int wins = 0;
+int losses = 0;
 
 // ─── Character Select ─────────────────────────────────────────────────────────
 void update_char_row(int row, int cursor) {
@@ -355,6 +357,15 @@ void draw_start_screen_full(void) {
     printText(" START  ", 30, 80,  COL_GRAY, COL_BLACK);
     printText(" CREDITS",30, 90,  COL_GRAY, COL_BLACK);
     printText(" QUIT   ", 30, 100, COL_GRAY, COL_BLACK);
+
+    char score_buf[16];
+    score_buf[0]='W'; score_buf[1]=':';
+    itoa_simple(wins, score_buf+2);
+    int k=2; while(score_buf[k]) k++;
+    score_buf[k++]=' '; score_buf[k++]='L'; score_buf[k++]=':';
+    itoa_simple(losses, score_buf+k);
+    printText(score_buf, 30, 120, COL_GRAY, COL_BLACK);
+
     music_play(track_menu, len_track_menu, 1);
 }
 void update_start_screen(int old_select, int new_select) {
@@ -496,9 +507,11 @@ void show_end_screen(int player_won) {
     music_stop(); 
     if (player_won) {
         sfx_victory();
+        wins++;
         eputs("=== PLAYER WINS ===\r\n");
     } else {
         sfx_defeat();
+        losses++;
         eputs("=== AI WINS ===\r\n");
     }
     clear_screen();
@@ -533,8 +546,19 @@ void show_end_screen(int player_won) {
         tmp[j]=0;
         printText(tmp, 2+i*40, 124, player_won?COL_RED:COL_GREEN, COL_BLACK);
     }
+
+    char score_buf[16];
+    char tmp2[6];
+    score_buf[0]='W'; score_buf[1]=':';
+    itoa_simple(wins,   score_buf+2);
+    int k=2; while(score_buf[k]) k++;
+    score_buf[k++]=' '; score_buf[k++]='L'; score_buf[k++]=':';
+    itoa_simple(losses, score_buf+k);
+    printText(score_buf, 2, 140, COL_GRAY, COL_BLACK);
+
     printText("Any btn=Menu", 2, 148, COL_GRAY, COL_BLACK);
     drain_buttons();
+    godmode = 0; 
     while (!btn_confirm_just()&&!btn_left_just()&&!btn_right_just()&&!btn_down_just()) {
         mdelay(50); btn_up_just();
     }
