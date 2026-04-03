@@ -364,7 +364,7 @@ void draw_start_screen_full(void) {
     int k=2; while(score_buf[k]) k++;
     score_buf[k++]=' '; score_buf[k++]='L'; score_buf[k++]=':';
     itoa_simple(losses, score_buf+k);
-    printText(score_buf, 30, 120, COL_GRAY, COL_BLACK);
+    printText(score_buf, 30, 125, COL_GRAY, COL_BLACK);
 
     music_play(track_menu, len_track_menu, 1);
 }
@@ -546,15 +546,6 @@ void show_end_screen(int player_won) {
         tmp[j]=0;
         printText(tmp, 2+i*40, 124, player_won?COL_RED:COL_GREEN, COL_BLACK);
     }
-
-    char score_buf[16];
-    char tmp2[6];
-    score_buf[0]='W'; score_buf[1]=':';
-    itoa_simple(wins,   score_buf+2);
-    int k=2; while(score_buf[k]) k++;
-    score_buf[k++]=' '; score_buf[k++]='L'; score_buf[k++]=':';
-    itoa_simple(losses, score_buf+k);
-    printText(score_buf, 2, 140, COL_GRAY, COL_BLACK);
 
     printText("Any btn=Menu", 2, 148, COL_GRAY, COL_BLACK);
     drain_buttons();
