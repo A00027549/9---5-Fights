@@ -11,13 +11,16 @@ void delay(volatile uint32_t dly);
 void setupIO();
 int isInside(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t px, uint16_t py);
 void enablePullUp(GPIO_TypeDef *Port, uint32_t BitNumber);
-void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode); 
+void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode);
 
+// Incremented every millisecond by the SysTick interrupt — used for delays/timing throughout the game
 volatile uint32_t milliseconds;
 
-// ─── Sprite Data (const = Flash, costs zero RAM) ─────────────────────────────
+// ─── Sprite Data ──────────────────────────────────────────────────────────────
+// Each sprite is a 26x45 grid of 16-bit colour values (RGB565 format).
+// Stored in Flash (const) so they don't eat into the tiny RAM on this chip.
 
-const uint16_t programmer[]=  //these ae 16x16 pixel sprites, stored as 256 16-bit values 
+const uint16_t programmer[]=
 {
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,13372,13372,13372,13372,13372,13372,13372,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,42749,42749,65535,24535,42749,42749,65535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,42749,42749,65535,24535,42749,42749,65535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,65535,65535,65535,24535,65535,65535,65535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,56246,56246,56246,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,56246,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,56246,24535,24535,24535,56246,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,56246,56246,56246,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,56246,56246,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,56246,56246,56246,56246,56246,56246,56246,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,51455,51455,51455,51455,51455,51455,51455,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,51455,51455,51455,51455,51455,51455,51455,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,0,0,0,0,0,0,0,0,0,0,0,0,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,51455,0,0,0,0,0,0,0,0,0,51455,51455,51455,51455,51455,51455,24375,24375,24375,24375,24375,51455,51455,51455,51455,51455,51455,0,0,0,0,0,0,0,0,51455,51455,51455,51455,51455,51455,51455,24375,24375,24375,24375,24375,51455,51455,51455,51455,51455,51455,51455,51455,51455,0,0,0,51455,51455,51455,51455,51455,51455,18382,18382,51455,24375,24375,51455,51455,51455,51455,18382,18382,51455,51455,51455,51455,51455,51455,51455,0,0,51455,51455,51455,51455,51455,51455,18382,18382,51455,24375,24375,51455,51455,51455,51455,18382,18382,51455,51455,51455,51455,51455,51455,51455,0,0,51455,51455,51455,51455,51455,51455,18382,18382,51455,24375,24375,51455,51455,51455,51455,18382,18382,51455,51455,51455,51455,51455,51455,51455,0,51455,51455,51455,51455,51455,51455,18382,18382,18382,51455,24375,24375,24375,24375,24375,51455,18382,18382,18382,51455,51455,51455,24535,24535,24535,0,51455,51455,51455,51455,51455,51455,18382,18382,18382,51455,24375,24375,24375,24375,24375,51455,18382,18382,18382,51455,51455,51455,24535,24535,24535,0,24535,24535,24535,51455,51455,51455,18382,18382,18382,51455,51455,51455,51455,51455,51455,51455,18382,18382,18382,0,0,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,18382,18382,18382,51455,51455,51455,51455,51455,51455,18382,18382,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,18382,18382,18382,51455,51455,51455,51455,51455,51455,18382,18382,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,18382,51455,51455,51455,51455,51455,18382,18382,18382,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,18382,18382,18382,18382,18382,18382,18382,52462,52462,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,18382,18382,18382,18382,18382,18382,18382,52462,52462,0,0,0,0,24535,24535,24535,0,0,24535,24535,0,0,0,0,52462,52462,52462,19149,19149,19149,19149,19149,19149,52462,52462,52462,0,0,0,0,0,0,0,0,0,0,0,0,0,0,52462,52462,19149,19149,19149,19149,52462,52462,19149,19149,19149,52462,0,0,0,0,0,0,0,0,0,0,0,0,0,0,52462,52462,19149,19149,19149,19149,52462,52462,19149,19149,19149,52462,0,0,0,0,0,0,0,0,0,0,0,0,0,0,52462,52462,19149,19149,19149,52462,52462,52462,19149,19149,19149,19149,52462,52462,0,0,0,0,0,0,0,0,0,0,0,52462,52462,19149,19149,19149,52462,52462,0,0,52462,19149,19149,19149,52462,52462,0,0,0,0,0,0,0,0,0,0,0,52462,52462,19149,19149,19149,52462,52462,0,0,52462,19149,19149,19149,19149,52462,0,0,0,0,0,0,0,0,0,0,0,52462,19149,19149,19149,19149,52462,0,0,0,52462,19149,19149,19149,19149,52462,0,0,0,0,0,0,0,0,0,0,0,52462,19149,19149,19149,19149,52462,0,0,0,52462,19149,19149,19149,19149,52462,0,0,0,0,0,0,0,0,0,0,0,52462,19149,19149,19149,52462,52462,0,0,0,52462,19149,19149,19149,19149,52462,0,0,0,0,0,0,0,0,0,47701,47701,13372,13372,13372,13372,47701,47701,0,0,0,52462,19149,19149,19149,47701,47701,0,0,0,0,0,0,47701,47701,47701,13372,13372,13372,13372,13372,13372,47701,47701,0,0,0,47701,13372,13372,13372,13372,13372,47701,47701,47701,0,0,0,47701,47701,47701,13372,13372,13372,13372,13372,13372,47701,47701,0,0,0,47701,13372,13372,13372,13372,13372,47701,47701,47701,0,0,0,47701,47701,47701,47701,47701,47701,47701,47701,47701,0,0,0,0,0,47701,47701,47701,47701,47701,47701,47701,47701,47701,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,};
 const uint16_t guard[]=
@@ -40,11 +43,14 @@ const uint16_t teacher[]=
 {
 0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,56246,56246,24535,56246,56246,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13372,13372,44923,44923,44923,24535,44923,44923,44923,13372,13372,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13372,44923,19149,19149,65535,44923,19149,19149,65535,44923,13372,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,44923,44923,19149,19149,65535,44923,19149,19149,65535,44923,44923,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,44923,65535,65535,65535,44923,65535,65535,65535,44923,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,44923,44923,44923,24535,44923,44923,44923,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,56246,24535,24535,24535,56246,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,56246,56246,56246,56246,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,56246,56246,24535,24535,24535,24535,24535,56246,56246,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,56246,56246,56246,56246,56246,56246,56246,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,65279,65279,56246,56246,56246,65279,65279,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,65279,65279,65279,56246,65279,65279,65279,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43884,43884,43884,65279,65279,65279,65279,65279,43884,43884,43884,0,0,0,0,0,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,43884,43884,65279,65279,43884,43884,43884,43884,43884,43884,43884,0,0,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,0,0,0,0,0,0,0,0,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,43884,0,0,0,43884,43884,43884,43884,43884,43884,43091,43091,43884,43884,43884,43884,43884,43884,43884,43091,43091,43884,43884,43884,43884,43884,43884,43884,0,0,43884,43884,43884,43884,43884,43884,43091,43091,43884,43884,43884,43884,43884,43884,43884,43091,43091,43884,43884,43884,43884,43884,43884,43884,0,0,43884,43884,43884,43884,43884,43884,43091,43091,43884,43884,43884,43884,43884,43884,43884,43091,43091,43884,43884,43884,43884,43884,43884,43884,0,43884,43884,43884,43884,43884,43884,43091,43091,43091,43884,43884,43884,43884,43884,43884,43884,43091,43091,43091,43884,43884,43884,24535,24535,24535,0,43884,43884,43884,43884,43884,43884,43091,43091,43091,43884,43884,43884,43884,43884,43884,43884,43091,43091,43091,43884,43884,43884,24535,24535,24535,0,24535,24535,24535,43884,43884,43884,43091,43091,43091,43884,43884,43884,43884,43884,43884,43884,43091,43091,43091,0,0,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,43091,43091,43091,43884,43884,43884,43884,43884,43884,43091,43091,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,43091,43091,43091,43884,43884,43884,43884,43884,43884,43091,43091,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,43091,43884,43884,43884,43884,43884,43091,43091,43091,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,43091,43091,43091,43091,43091,43091,43091,43091,43091,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,0,43091,43091,43091,43091,43091,43091,43091,43091,43091,0,0,0,0,24535,24535,24535,24535,24535,24535,24535,0,0,0,0,20198,20198,20198,43948,43948,43948,43948,43948,43948,20198,20198,20198,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20198,20198,43948,43948,43948,20198,20198,20198,43948,43948,43948,20198,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20198,20198,43948,43948,43948,20198,20198,20198,43948,43948,43948,20198,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20198,20198,43948,43948,43948,20198,20198,20198,43948,43948,43948,43948,20198,20198,0,0,0,0,0,0,0,0,0,0,0,20198,20198,20198,43948,20198,20198,20198,0,0,20198,43948,43948,43948,20198,20198,0,0,0,0,0,0,0,0,0,0,0,20198,20198,20198,43948,20198,20198,20198,0,0,20198,43948,43948,43948,20198,20198,0,0,0,0,0,0,0,0,0,0,0,20198,43948,43948,43948,20198,20198,0,0,0,20198,43948,43948,43948,20198,20198,0,0,0,0,0,0,0,0,0,0,0,20198,43948,43948,43948,20198,20198,0,0,0,20198,43948,43948,43948,20198,20198,0,0,0,0,0,0,0,0,0,0,0,20198,43948,43948,43948,20198,20198,0,0,0,20198,43948,43948,43948,20198,20198,0,0,0,0,0,0,0,0,0,47180,47180,45371,45371,45371,45371,47180,47180,0,0,0,20198,43948,43948,43948,47180,47180,0,0,0,0,0,0,47180,47180,47180,45371,45371,45371,45371,45371,45371,47180,47180,0,0,0,47180,45371,45371,45371,45371,45371,47180,47180,47180,0,0,0,47180,47180,45371,45371,45371,45371,45371,45371,45371,47180,47180,0,0,0,47180,45371,45371,45371,45371,45371,47180,47180,47180,0,0,0,47180,47180,47180,47180,47180,47180,47180,47180,47180,0,0,0,0,0,47180,47180,47180,47180,47180,47180,47180,47180,47180,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 };
+
+// This is the "flash" animation shown when a character takes a hit.
 const uint16_t animation_flash_damage[]=
 {
 4368,0,0,0,0,0,0,0,0,0,0,0,0,4368,4368,0,0,0,0,0,0,0,0,0,0,0,4368,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,4368,0,0,0,0,0,0,4368,4368,4368,4368,4368,4368,4368,0,0,0,0,0,0,0,4368,4368,4368,0,0,4368,4368,0,0,0,4368,4368,4368,65535,65535,65535,65535,65535,4368,4368,4368,0,0,0,4368,4368,4368,0,0,0,0,0,4368,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,4368,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,0,0,0,0,4368,4368,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,4368,0,0,0,0,0,4368,4368,4368,4368,4368,0,0,4368,4368,4368,65535,65535,65535,65535,65535,4368,4368,4368,0,0,4368,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,65535,4368,0,0,0,0,0,4368,4368,4368,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,4368,4368,0,0,0,0,0,0,0,0,4368,4368,4368,65535,65535,65535,65535,65535,4368,4368,4368,0,0,0,0,0,0,4368,4368,0,0,0,0,4368,4368,4368,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,4368,4368,4368,0,0,0,0,4368,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,4368,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,4368,4368,4368,0,0,0,4368,4368,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,4368,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,4368,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,4368,4368,4368,65535,65535,4368,0,4368,65535,65535,4368,4368,4368,4368,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,4368,0,0,4368,65535,65535,4368,4368,4368,65535,65535,4368,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,4368,65535,65535,65535,4368,4368,65535,65535,4368,0,0,0,4368,4368,4368,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,4368,4368,65535,65535,4368,4368,65535,65535,4368,4368,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,4368,65535,65535,4368,4368,65535,65535,4368,0,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,4368,65535,4368,4368,4368,4368,4368,4368,0,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,4368,4368,4368,0,0,4368,4368,0,0,0,0,4368,4368,4368,65535,65535,65535,65535,65535,65535,65535,4368,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,0,4368,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,4368,4368,4368,4368,65535,65535,4368,4368,4368,0,0,4368,4368,0,0,0,4368,4368,4368,0,4368,4368,65535,65535,65535,65535,4368,0,0,4368,65535,65535,65535,65535,4368,0,0,0,4368,4368,4368,4368,4368,0,0,0,4368,65535,65535,65535,65535,4368,4368,0,0,4368,65535,65535,65535,65535,4368,0,0,0,0,0,4368,0,0,0,0,0,4368,65535,65535,65535,65535,4368,0,0,0,4368,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,4368,0,0,0,4368,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,0,0,0,4368,65535,65535,65535,65535,4368,0,0,0,4368,65535,65535,65535,65535,4368,0,0,0,0,0,0,0,0,0,4368,4368,4368,65535,65535,65535,65535,4368,0,0,0,4368,65535,65535,65535,65535,4368,0,0,0,0,0,0,4368,4368,4368,4368,65535,65535,65535,65535,65535,65535,4368,0,0,0,4368,65535,65535,65535,65535,4368,4368,4368,4368,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,4368,4368,4368,0,0,0,4368,65535,65535,65535,65535,65535,65535,65535,4368,0,0,0,4368,4368,4368,4368,4368,4368,4368,4368,4368,0,0,0,4368,0,4368,4368,4368,4368,4368,4368,4368,4368,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4368,4368,0,0,0,0,0,0,0,0,0,0,0,0,
 };
-// ─── Colours ─────────────────────────────────────────────────────────────────
+
+// ─── Colour Definitions ───────────────────────────────────────────────────────
 #define COL_BLACK    RGBToWord(0,0,0)
 #define COL_WHITE    RGBToWord(0xFF,0xFF,0xFF)
 #define COL_YELLOW   RGBToWord(0xFF,0xFF,0)
@@ -55,33 +61,36 @@ const uint16_t animation_flash_damage[]=
 #define COL_ORANGE   RGBToWord(0xFF,0x88,0)
 #define COL_LTBLUE   RGBToWord(0x40,0x80,0xFF)
 
-// ─── Layout constants ────────────────────────────────────────────────────────
+// ─── Layout Constants ─────────────────────────────────────────────────────────
 #define PLAYER_X       20
-#define PLAYER_Y       83   
+#define PLAYER_Y       83
 #define PLAYER_SPR_W   26
 #define PLAYER_SPR_H   45
 #define ENEMY_X        78
 #define ENEMY_Y        22
 #define ENEMY_SPR_W    26
 #define ENEMY_SPR_H    45
-#define BAR_W          50
-#define BAR_H          5
+#define BAR_W          50   // Width of HP bars
+#define BAR_H          5    // Height of HP bars
 #define PLAYER_HP_BAR_X   5
 #define PLAYER_HP_BAR_Y   138
 #define ENEMY_HP_BAR_X    60
 #define ENEMY_HP_BAR_Y    10
-#define MOVE_Y         148
+#define MOVE_Y         148   // Y position of the move buttons row
 #define MOVE_H         10
 #define MOVE_W         40
-#define MOVE1_X        2
+#define MOVE1_X        2     // X position of the first move button
 #define MSG_X          2
 #define MSG_Y          66
 #define NUM_MENU_ITEMS 3
 
-// ─── Game state ──────────────────────────────────────────────────────────────
+// ─── Game State ───────────────────────────────────────────────────────────────
+// The main loop checks this and behaves differently depending on whether it's the player's turn, enemy's turn, or the game is over.
 typedef enum { STATE_PLAYER_TURN, STATE_ENEMY_TURN, STATE_PLAYER_WIN, STATE_ENEMY_WIN } GameState;
 
-// ─── Pseudo-random ───────────────────────────────────────────────────────────
+// ─── Pseudo-Random Number Generator ─────────────────────────────────────────
+// This is an xorshift random num generator,
+// produces different results (since the player always takes different amounts of time to get through the menu).
 static uint32_t rng_seed = 12345;
 uint32_t rand_next(void) {
     rng_seed ^= rng_seed << 13;
@@ -89,49 +98,63 @@ uint32_t rand_next(void) {
     rng_seed ^= rng_seed << 5;
     return rng_seed;
 }
+
+// Returns a random integer in the range
 int rand_range(int lo, int hi) {
     return lo + (int)(rand_next() % (uint32_t)(hi - lo + 1));
 }
 
-// ─── Button reading ──────────────────────────────────────────────────────────
+// ─── Button Reading ───────────────────────────────────────────────────────────
+// Buttons are active-low: a 0 on the IDR pin means the button is physically pressed, the pin is high when idle
 #define BTN_PRESSED(port, pin) (!((port)->IDR & (1u << (pin))))
 
+// Previous button states, used to detect if they just got pressed
+// Without this, holding a button down would count as pressing it every single frame.
 int btn_left_prev=0, btn_right_prev=0, btn_down_prev=0, btn_up_prev=0, btn_confirm_prev=0;
 
+// Each function returns 1 the first frame the button is pressed, then 0 until released and pressed again.
 int btn_right_just(void)   { int v=BTN_PRESSED(GPIOB,4); int r=v&&!btn_left_prev;    btn_left_prev=v;    return r; }
 int btn_left_just(void)    { int v=BTN_PRESSED(GPIOB,5); int r=v&&!btn_right_prev;   btn_right_prev=v;   return r; }
 int btn_down_just(void)    { int v=BTN_PRESSED(GPIOA,8); int r=v&&!btn_down_prev;    btn_down_prev=v;    return r; }
 int btn_up_just(void)      { int v=BTN_PRESSED(GPIOA,11);int r=v&&!btn_up_prev;      btn_up_prev=v;      return r; }
 int btn_confirm_just(void) { int v=BTN_PRESSED(GPIOA,1); int r=v&&!btn_confirm_prev; btn_confirm_prev=v; return r; }
 
-// ─── Shared helpers ───────────────────────────────────────────────────────────
-// Factoring these out saves ~80 bytes — called 5-8 times each in the original
-static void clear_screen(void) { 
-    draw_filled_rect(0, 0, 128, 160, COL_BLACK); 
+// ─── Shared Helpers ───────────────────────────────────────────────────────────
+static void clear_screen(void) {
+    draw_filled_rect(0, 0, 128, 160, COL_BLACK);
 }
+
+// Call this before entering a new screen to discard any button presses, avoids accidental immediate input.
 static void drain_buttons(void) {
     btn_down_just(); btn_up_just(); btn_left_just(); btn_right_just(); btn_confirm_just();
 }
 
-// ─── UI helpers ──────────────────────────────────────────────────────────────
+// ─── UI Drawing Helpers ───────────────────────────────────────────────────────
+// Fills a rectangle by drawing horizontal lines row by row.
 void draw_filled_rect(int x, int y, int w, int h, uint16_t color) {
     for (int row = 0; row < h; row++)
         drawLine(x, y+row, x+w-1, y+row, color);
 }
+
+// Draws just the outline of a rectangle.
 void draw_rect_border(int x, int y, int w, int h, uint16_t color) {
-    drawLine(x,     y,     x+w-1, y,     color);
-    drawLine(x,     y+h-1, x+w-1, y+h-1, color);
-    drawLine(x,     y,     x,     y+h-1, color);
-    drawLine(x+w-1, y,     x+w-1, y+h-1, color);
+    drawLine(x,     y,     x+w-1, y,     color); // top
+    drawLine(x,     y+h-1, x+w-1, y+h-1, color); // bottom
+    drawLine(x,     y,     x,     y+h-1, color); // left
+    drawLine(x+w-1, y,     x+w-1, y+h-1, color); // right
 }
+
+// Draws a health bar, dark grey background, coloured fill proportional to hp/max_hp, white border.
 void draw_hp_bar(int x, int y, int hp, int max_hp, uint16_t color) {
-    draw_filled_rect(x, y, BAR_W, BAR_H, COL_DARKGRAY);
+    draw_filled_rect(x, y, BAR_W, BAR_H, COL_DARKGRAY); // empty bar background
     int filled = (hp * BAR_W) / max_hp;
     if (filled < 0) filled = 0;
     if (filled > BAR_W) filled = BAR_W;
-    if (filled > 0) draw_filled_rect(x, y, filled, BAR_H, color);
-    draw_rect_border(x, y, BAR_W, BAR_H, COL_WHITE);
+    if (filled > 0) draw_filled_rect(x, y, filled, BAR_H, color); // coloured fill
+    draw_rect_border(x, y, BAR_W, BAR_H, COL_WHITE);              // white border on top
 }
+
+// Returns a colour based on how much HP is remaining — green > 75%, yellow > 50%, orange > 25%, red otherwise.
 uint16_t hp_color(int hp, int max) {
     if (hp*4 > max*3) return COL_GREEN;
     if (hp*2 > max)   return COL_YELLOW;
@@ -139,54 +162,63 @@ uint16_t hp_color(int hp, int max) {
     return COL_RED;
 }
 
+// Simple integer-to-string conversion.
 void itoa_simple(int v, char *buf) {
     if (v <= 0) { buf[0]='0'; buf[1]=0; return; }
     int i=0, tmp=v;
     while (tmp > 0) { buf[i++] = '0'+(tmp%10); tmp/=10; }
     buf[i]=0;
-    for (int a=0,b=i-1; a<b; a++,b--) { char c=buf[a]; buf[a]=buf[b]; buf[b]=c; }
+    // Reverse the digits in-place
+    for (int a=0, b=i-1; a<b; a++, b--) { char c=buf[a]; buf[a]=buf[b]; buf[b]=c; }
 }
 
+// Millisecond delay that also keeps the music ticking in the background., If we just spin-waited, the audio would cut out during delays.
+// Simple blocking delay that just waits for `dly` milliseconds, works with audio
 static void mdelay(uint32_t ms) {
     uint32_t end = milliseconds + ms;
     while (milliseconds != end) {
-        music_tick(milliseconds);
-        __asm(" wfi ");
+        music_tick(milliseconds);  // keep audio running
+        __asm(" wfi ");            // wait for interrupt — saves power and avoids a busy loop
     }
 }
 
-// --- LED Control for PA9, PA10, PA12 ---
+// ─── LED Control (PA9 = LED0, PA10 = LED1, PA12 = LED2) ───────────────────────
+// The LEDs show how many of the player's characters are still alive.
+// BSRR is the Bit Set/Reset Register on STM32 GPIO
+
+
 void led_off(int led_number) {
     switch(led_number) {
-        case 0: GPIOA->BSRR = (1u << 25); break; // PA9
-        case 1: GPIOA->BSRR = (1u << 26); break; // PA10  
-        case 2: GPIOA->BSRR = (1u << 28); break; // PA12
+        case 0: GPIOA->BSRR = (1u << 25); break; // PA9  → reset bit 9 (25 = 9+16)
+        case 1: GPIOA->BSRR = (1u << 26); break; // PA10 → reset bit 10 (26 = 10+16)
+        case 2: GPIOA->BSRR = (1u << 28); break; // PA12 → reset bit 12 (28 = 12+16)
     }
 }
 
 void led_on(int led_number) {
     switch(led_number) {
-        case 0: GPIOA->BSRR = (1u << 9); break;  // PA9
+        case 0: GPIOA->BSRR = (1u << 9);  break; // PA9
         case 1: GPIOA->BSRR = (1u << 10); break; // PA10
         case 2: GPIOA->BSRR = (1u << 12); break; // PA12
     }
 }
 
 void leds_all_off(void) {
-    GPIOA->BSRR = (1u << 25) | (1u << 26) | (1u << 28); // Turn off all LEDs
+    GPIOA->BSRR = (1u << 25) | (1u << 26) | (1u << 28);
 }
 
 void leds_all_on(void) {
-    GPIOA->BSRR = (1u << 9) | (1u << 10) | (1u << 12); // Turn on all LEDs
+    GPIOA->BSRR = (1u << 9) | (1u << 10) | (1u << 12);
 }
 
-
+// Clears the message area and prints up to two lines of text.
 void show_message(const char *line1, const char *line2) {
     draw_filled_rect(0, MSG_Y, 128, 18, COL_BLACK);
     if (line1) printText(line1, MSG_X, MSG_Y,     COL_WHITE,  COL_BLACK);
     if (line2) printText(line2, MSG_X, MSG_Y+9,   COL_YELLOW, COL_BLACK);
 }
 
+// Logs a move to the UART serial port, useful for debugging on a PC terminal.
 void serial_log_move(const char *attacker, const char *move_name, int dmg) {
     char buf[12];
     eputs(attacker);
@@ -198,8 +230,9 @@ void serial_log_move(const char *attacker, const char *move_name, int dmg) {
     eputs(" dmg\r\n");
 }
 
-// ─── Moves ───────────────────────────────────────────────────────────────────
-// Shortened flavor strings save ~120 bytes vs originals
+// ─── Move Definitions ─────────────────────────────────────────────────────────
+// Each character has 3 moves. Each move has a name, a damage range (random roll between a high and low num
+// and a flavor string shown in the message box on screen.
 typedef struct { const char *name; int dmg_lo, dmg_hi; const char *flavor; } Move;
 
 static const Move programmer_moves[3] = {
@@ -209,12 +242,12 @@ static const Move programmer_moves[3] = {
 };
 static const Move chef_moves[3] = {
     { "Sand",  10, 30, "Idiot Sandwich!" },
-    { "Spoon",  15, 33, "Trauma!"         },
-    { "Spec",  7, 43, "Chef Special!"   },
+    { "Spoon", 15, 33, "Trauma!"         },
+    { "Spec",   7, 43, "Chef Special!"   },
 };
 static const Move garda_moves[3] = {
     { "Pts",   13, 29, "Drive Right!"  },
-    { "Blow",   9, 34, "Blow This!"      },
+    { "Blow",   9, 34, "Blow This!"    },
     { "Cam",   20, 40, "Call Guards!"  },
 };
 static const Move builder_moves[3] = {
@@ -224,16 +257,17 @@ static const Move builder_moves[3] = {
 };
 static const Move financier_moves[3] = {
     { "Crsh",  15, 25, "Bye Savings!"  },
-    { "Prty",   1, 60, "Release It!"   },
+    { "Prty",   1, 60, "Release It!"   },  
     { "Invst", 23, 25, "Make Money!"   },
 };
 static const Move teacher_moves[3] = {
-    { "Study",  15, 25, "Test Soon!"    },
+    { "Study", 15, 25, "Test Soon!"    },
     { "Rulr",   5, 35, "Hand Out!"     },
     { "HW",    12, 45, "Get To Work!"  },
 };
 
-// ─── Character tables ────────────────────────────────────────────────────────
+// ─── Character Lookup Tables ─────────────────────────────────────────────────
+// Parallel arrays indexed by character ID (0–5), for easy lookup on characters.
 #define NUM_CHARS 6
 static const char * const char_names[NUM_CHARS] = {
     "Programmer","Chef","Garda","Builder","Financier","Teacher"
@@ -246,94 +280,115 @@ static const Move * const char_moves[NUM_CHARS] = {
     builder_moves, financier_moves, teacher_moves
 };
 
-// ─── Game-state globals ───────────────────────────────────────────────────────
-int char_status[NUM_CHARS];
-int player_team[3];
-int ai_team[3];
-int godmode = 0;
+// ─── Global Game State ────────────────────────────────────────────────────────
+int char_status[NUM_CHARS];  // 0 = available, 1 = player picked, 2 = AI picked
+int player_team[3];          // Indices of the 3 characters the player chose
+int ai_team[3];              // Indices of the 3 characters the AI chose
+int godmode = 0;             // If 1, player damage is multiplied by 10
 int wins = 0;
 int losses = 0;
 
-// ─── Character Select ─────────────────────────────────────────────────────────
+// ─── Character Select Screen ─────────────────────────────────────────────────
+
+// Redraws a single row in the character list, colouring it based on its status.
 void update_char_row(int row, int cursor) {
     uint16_t fg;
-    if      (char_status[row]==1) fg=COL_GREEN;
-    else if (char_status[row]==2) fg=COL_RED;
-    else if (row==cursor)         fg=COL_WHITE;
-    else                          fg=COL_GRAY;
+    if      (char_status[row]==1) fg=COL_GREEN;   // Player's pick
+    else if (char_status[row]==2) fg=COL_RED;     // AI's pick
+    else if (row==cursor)         fg=COL_WHITE;   // Highlighted
+    else                          fg=COL_GRAY;    // Not selected
     printText((row==cursor && char_status[row]==0) ? ">" : " ",
               0, 34+row*12, COL_WHITE, COL_BLACK);
     printText(char_names[row], 8, 34+row*12, fg, COL_BLACK);
 }
+
+// Redraws the preview box on the right side when hovering over a character.
+// Shows the sprite if available, or a "YOUR PICK" / "AI PICK" label if already taken.
 void update_preview_box(int cursor) {
-    int bx=80,by=40,bw=46,bh=58;
+    int bx=80, by=40, bw=46, bh=58;
     if (char_status[cursor]==0) {
-        draw_rect_border(bx,by,bw,bh,COL_WHITE);
-        draw_filled_rect(bx+1,by+1,bw-2,bh-2,COL_BLACK);
-        putImage(bx+10,by+7,PLAYER_SPR_W,PLAYER_SPR_H,char_sprites[cursor],0,0);
+        // Character is free, show its sprite
+        draw_rect_border(bx, by, bw, bh, COL_WHITE);
+        draw_filled_rect(bx+1, by+1, bw-2, bh-2, COL_BLACK);
+        putImage(bx+10, by+7, PLAYER_SPR_W, PLAYER_SPR_H, char_sprites[cursor], 0, 0);
     } else {
-        draw_filled_rect(bx,by,bw,bh,COL_DARKGRAY);
-        draw_rect_border(bx,by,bw,bh,COL_GRAY);
+        // Already picked, grey out and label who took it
+        draw_filled_rect(bx, by, bw, bh, COL_DARKGRAY);
+        draw_rect_border(bx, by, bw, bh, COL_GRAY);
         if (char_status[cursor]==1) {
-            printText("YOUR",bx+5,by+22,COL_GREEN,COL_DARKGRAY);
-            printText("PICK",bx+5,by+32,COL_GREEN,COL_DARKGRAY);
+            printText("YOUR", bx+5, by+22, COL_GREEN, COL_DARKGRAY);
+            printText("PICK", bx+5, by+32, COL_GREEN, COL_DARKGRAY);
         } else {
-            printText(" AI ",bx+5,by+22,COL_RED,COL_DARKGRAY);
-            printText("PICK",bx+5,by+32,COL_RED,COL_DARKGRAY);
+            printText(" AI ", bx+5, by+22, COL_RED, COL_DARKGRAY);
+            printText("PICK", bx+5, by+32, COL_RED, COL_DARKGRAY);
         }
     }
 }
+
 void draw_char_select_screen(int cursor) {
     clear_screen();
     printTextX2("Pick",  2,  2, COL_YELLOW, COL_BLACK);
     printTextX2("Char!", 60, 2, COL_YELLOW, COL_BLACK);
     printText("Up/Dn  A=pick", 0, 22, COL_GRAY, COL_BLACK);
-    for (int i=0; i<NUM_CHARS; i++) update_char_row(i,cursor);
+    for (int i=0; i<NUM_CHARS; i++) update_char_row(i, cursor);
     update_preview_box(cursor);
 }
+
+// Picks a random character from those not yet claimed.
+// Returns -1 if none are available.
 int ai_pick_random(void) {
     static int available[NUM_CHARS];
     int count=0;
     for (int i=0; i<NUM_CHARS; i++)
         if (char_status[i]==0) available[count++]=i;
     if (count==0) return -1;
-    return available[rand_range(0,count-1)];
+    return available[rand_range(0, count-1)];
 }
+
+// The character select loop. Player and AI alternate picks, until each side has 3.
 void character_select(void) {
     for (int i=0; i<NUM_CHARS; i++) char_status[i]=0;
     int player_picks=0, ai_picks=0, cursor=0;
     drain_buttons();
     draw_char_select_screen(cursor);
+
     while (player_picks < 3) {
         mdelay(80);
         int bu=btn_up_just(), bd=btn_down_just(), bc=btn_confirm_just();
-        btn_left_just(); btn_right_just();
+        btn_left_just(); btn_right_just(); 
+
+        // Navigate throught the list.
         if (bd) {
             int old=cursor; cursor=(cursor+NUM_CHARS-1)%NUM_CHARS;
-            update_char_row(old,cursor); update_char_row(cursor,cursor);
+            update_char_row(old, cursor); update_char_row(cursor, cursor);
             update_preview_box(cursor);
         }
         if (bu) {
             int old=cursor; cursor=(cursor+1)%NUM_CHARS;
-            update_char_row(old,cursor); update_char_row(cursor,cursor);
+            update_char_row(old, cursor); update_char_row(cursor, cursor);
             update_preview_box(cursor);
         }
         if (bc && char_status[cursor]==0) {
+            // Player confirmed a pick
             char_status[cursor]=1; player_team[player_picks++]=cursor;
-            update_char_row(cursor,cursor); update_preview_box(cursor);
+            update_char_row(cursor, cursor); update_preview_box(cursor);
             mdelay(400);
+
+            // AI's counter-picks
             if (ai_picks < 3) {
                 mdelay(500);
                 int ai_choice=ai_pick_random();
                 if (ai_choice >= 0) {
                     char_status[ai_choice]=2; ai_team[ai_picks++]=ai_choice;
-                    update_char_row(ai_choice,cursor);
+                    update_char_row(ai_choice, cursor);
                     if (ai_choice==cursor) update_preview_box(cursor);
                     mdelay(600);
                 }
             }
         }
     }
+
+    // Show the final team summary before the fight starts
     clear_screen();
     printTextX2("READY!", 18, 10, COL_YELLOW, COL_BLACK);
     printText("Your team:", 2, 45, COL_GREEN, COL_BLACK);
@@ -349,15 +404,17 @@ void character_select(void) {
     }
 }
 
-// ─── Start Screen ────────────────────────────────────────────────────────────
+// ─── Start Screen ─────────────────────────────────────────────────────────────
+
 void draw_start_screen_full(void) {
     clear_screen();
     printTextX2("9-5",    38, 20, COL_YELLOW, COL_BLACK);
-    printTextX2("FIGHTS!",18, 40, COL_WHITE,  COL_BLACK);
+    printTextX2("FIGHTS!", 18, 40, COL_WHITE,  COL_BLACK);
     printText(" START  ", 30, 80,  COL_GRAY, COL_BLACK);
-    printText(" CREDITS",30, 90,  COL_GRAY, COL_BLACK);
+    printText(" CREDITS", 30, 90,  COL_GRAY, COL_BLACK);
     printText(" QUIT   ", 30, 100, COL_GRAY, COL_BLACK);
 
+    // A win loss score on the start screen
     char score_buf[16];
     score_buf[0]='W'; score_buf[1]=':';
     itoa_simple(wins, score_buf+2);
@@ -368,14 +425,20 @@ void draw_start_screen_full(void) {
 
     music_play(track_menu, len_track_menu, 1);
 }
+
+// Redraws only the two affected menu items when the selection changes.
+// This avoids flickering from a full redraw every frame.
 void update_start_screen(int old_select, int new_select) {
     static const char * const labels[3] = {" START  "," CREDITS"," QUIT   "};
-    printText(labels[old_select], 30, 80+old_select*10, COL_GRAY,  COL_BLACK);
-    printText(labels[new_select], 30, 80+new_select*10, COL_WHITE, COL_BLACK);
-    printText(" ", 22, 80+old_select*10, COL_BLACK, COL_BLACK);
-    printText(">", 22, 80+new_select*10, COL_WHITE, COL_BLACK);
+    printText(labels[old_select], 30, 80+old_select*10, COL_GRAY,  COL_BLACK); // deselect old
+    printText(labels[new_select], 30, 80+new_select*10, COL_WHITE, COL_BLACK); // highlight new
+    printText(" ", 22, 80+old_select*10, COL_BLACK, COL_BLACK); // erase old cursor
+    printText(">", 22, 80+new_select*10, COL_WHITE, COL_BLACK); // draw new cursor
 }
 
+// ─── Secret Cheat Code Screen ─────────────────────────────────────────────────
+// Reached via a hidden input on the credits screen, down + up buttons
+// If the correct code is typed over serial, GODMODE is activated (10x damage).
 void cheat_code_screen(void) {
     clear_screen();
     printTextX2("???",    38, 20, COL_YELLOW, COL_BLACK);
@@ -387,28 +450,28 @@ void cheat_code_screen(void) {
     eputs("\r\n=== SECRET SCREEN ===\r\n");
     eputs("Enter cheat code: ");
 
-    const char *code = "95fights";
+    const char *code = "95fights"; // Godmode cheat code
     char input[9];
     int i;
+    // Read exactly 8 characters from UART, echoing each one back
     for (i = 0; i < 8; i++) {
         input[i] = egetchar();
-        eputchar(input[i]);   // echo character back
+        eputchar(input[i]);
     }
     input[8] = 0;
     eputs("\r\n");
 
+    // Compares and checks if the input given by the user matches the cheat code
     int match = 1;
     for (i = 0; i < 8; i++) {
         if (input[i] != code[i]) { match = 0; break; }
     }
 
     if (match) {
-        music_stop(); 
+        music_stop();
         godmode = 1;
         eputs(">>> GODMODE ACTIVATED <<<\r\n");
-        const MusicNote *t = track_godmode;
-        uint16_t len = len_track_godmode;
-        music_play(t, len, 0);
+        music_play(track_godmode, len_track_godmode, 0);
         clear_screen();
         printTextX2("GOD",   28, 25, COL_YELLOW, COL_BLACK);
         printTextX2("MODE!", 18, 50, COL_YELLOW, COL_BLACK);
@@ -417,15 +480,16 @@ void cheat_code_screen(void) {
         while (milliseconds != end) { music_tick(milliseconds); __asm(" wfi "); }
         music_stop();
     } else {
-        music_stop();  
+        music_stop();
         eputs("Wrong code! Try again.\r\n");
         clear_screen();
         printTextX2("WRONG!", 12, 40, COL_RED,   COL_BLACK);
         printText("Nice try...", 20, 85, COL_WHITE, COL_BLACK);
     }
-    mdelay(2000); 
+    mdelay(2000);
 }
 
+// ─── Credits Screen ───────────────────────────────────────────────────────────
 void credits(void) {
     clear_screen(); mdelay(50);
     printTextX2("Credits", 10, 20, COL_YELLOW, COL_BLACK);
@@ -437,52 +501,62 @@ void credits(void) {
     int up_seen = 0;
     while (1) {
         mdelay(50);
-        if (btn_up_just())                        { up_seen = 1; }
+        if (btn_up_just())      { up_seen = 1; }  // The button code is down and up on the board, although it shows the opposite here
         if (btn_down_just()) {
-            if (up_seen) { cheat_code_screen(); } // secret entry
+            if (up_seen) { cheat_code_screen(); } 
             return;
         }
         if (btn_confirm_just()) return;
     }
 }
 
-// ─── Battle helpers ───────────────────────────────────────────────────────────
+// ─── Battle Scene Drawing ─────────────────────────────────────────────────────
+
+// Draws the 3 move buttons along the bottom of the screen.
+// The selected one is highlighted in light blue.
 void draw_move_buttons(int selected, const Move *moves) {
     for (int i=0; i<3; i++) {
         int bx=MOVE1_X+i*42;
-        uint16_t bg=(i==selected)?COL_LTBLUE:COL_DARKGRAY;
-        draw_filled_rect(bx,MOVE_Y,MOVE_W,MOVE_H,bg);
-        draw_rect_border(bx,MOVE_Y,MOVE_W,MOVE_H,COL_WHITE);
+        uint16_t bg=(i==selected) ? COL_LTBLUE : COL_DARKGRAY;
+        draw_filled_rect(bx, MOVE_Y, MOVE_W, MOVE_H, bg);
+        draw_rect_border(bx, MOVE_Y, MOVE_W, MOVE_H, COL_WHITE);
+        // Copy up to 5 characters of the move name for the label
         char lbl[6]; int j;
-        for (j=0; j<5&&moves[i].name[j]; j++) lbl[j]=moves[i].name[j];
+        for (j=0; j<5 && moves[i].name[j]; j++) lbl[j]=moves[i].name[j];
         lbl[j]=0;
         printText(lbl, bx+2, MOVE_Y+2, COL_WHITE, bg);
     }
     printText("< A=USE >", 2, MOVE_Y+12, COL_GRAY, COL_BLACK);
 }
+
+// Draws the small coloured dots near each character showing how many are left.
+// Player's dots appear at the bottom-right, AI's at the top-left.
+// Blank dots represent KO'd characters.
 void draw_char_counters(int player_idx, int ai_idx) {
     int ay=MSG_Y-30, py=MSG_Y+50;
     printText("C:", 0, ay, COL_RED, COL_BLACK);
     for (int i=0; i<3; i++) {
-        uint16_t col=(i<(3-ai_idx))?COL_RED:COL_DARKGRAY;
-        draw_filled_rect(14+i*7,ay,5,5,col);
-        draw_rect_border(14+i*7,ay,5,5,COL_WHITE);
+        uint16_t col=(i<(3-ai_idx)) ? COL_RED : COL_DARKGRAY;
+        draw_filled_rect(14+i*7, ay, 5, 5, col);
+        draw_rect_border(14+i*7, ay, 5, 5, COL_WHITE);
     }
     printText("P:", 70, py, COL_GREEN, COL_BLACK);
     for (int i=0; i<3; i++) {
-        uint16_t col=(i<(3-player_idx))?COL_GREEN:COL_DARKGRAY;
-        draw_filled_rect(95+i*7,py,5,5,col);
-        draw_rect_border(95+i*7,py,5,5,COL_WHITE);
+        uint16_t col=(i<(3-player_idx)) ? COL_GREEN : COL_DARKGRAY;
+        draw_filled_rect(95+i*7, py, 5, 5, col);
+        draw_rect_border(95+i*7, py, 5, 5, COL_WHITE);
     }
 }
+
+// Draws the full battle scene: both character sprites, HP bars with numeric values, and character counters.
 void draw_scene(int player_hp, int enemy_hp,
                 const uint16_t *p_sprite, const uint16_t *e_sprite,
                 int player_char_idx, int ai_char_idx) {
     char buf[8];
-    putImage(PLAYER_X,PLAYER_Y,PLAYER_SPR_W,PLAYER_SPR_H,p_sprite,0,0);
-    putImage(ENEMY_X, ENEMY_Y, ENEMY_SPR_W, ENEMY_SPR_H, e_sprite,1,0);
-    draw_hp_bar(PLAYER_HP_BAR_X,PLAYER_HP_BAR_Y,player_hp,100,hp_color(player_hp,100));
-    draw_hp_bar(ENEMY_HP_BAR_X, ENEMY_HP_BAR_Y, enemy_hp, 100,hp_color(enemy_hp, 100));
+    putImage(PLAYER_X, PLAYER_Y, PLAYER_SPR_W, PLAYER_SPR_H, p_sprite, 0, 0);     // player sprite
+    putImage(ENEMY_X,  ENEMY_Y,  ENEMY_SPR_W,  ENEMY_SPR_H,  e_sprite, 1, 0);     // enemy sprite, flipped horizontally
+    draw_hp_bar(PLAYER_HP_BAR_X, PLAYER_HP_BAR_Y, player_hp, 100, hp_color(player_hp, 100));
+    draw_hp_bar(ENEMY_HP_BAR_X,  ENEMY_HP_BAR_Y,  enemy_hp,  100, hp_color(enemy_hp,  100));
     buf[0]='H'; buf[1]='P'; buf[2]=':'; itoa_simple(player_hp, buf+3);
     printText(buf, PLAYER_HP_BAR_X, PLAYER_HP_BAR_Y-8, COL_WHITE, COL_BLACK);
     buf[0]='H'; buf[1]='P'; buf[2]=':'; itoa_simple(enemy_hp, buf+3);
@@ -490,10 +564,11 @@ void draw_scene(int player_hp, int enemy_hp,
     draw_char_counters(player_char_idx, ai_char_idx);
 }
 
+// Flashes the hit animation over a character a few times to show they took damage.
+// Alternates between the flash sprite and the normal character sprite.
 void play_attack_anim(int x, int y, int w, int h,
                       const uint16_t *flash_spr, const uint16_t *char_spr,
                       int flip) {
-    // Show flash frames a few times
     for (int f = 0; f < 3; f++) {
         putImage(x, y, w, h, flash_spr, flip, 0);
         mdelay(80);
@@ -502,9 +577,11 @@ void play_attack_anim(int x, int y, int w, int h,
     }
 }
 
-// ─── End screen — factored to remove duplicated loop code (~100 bytes saved) ──
+// ─── End Screen ───────────────────────────────────────────────────────────────
+// Shown after the battle. Plays the appropriate sound, updates win/loss counters,
+// and shows the winning team's sprites alongside both teams' names.
 void show_end_screen(int player_won) {
-    music_stop(); 
+    music_stop();
     if (player_won) {
         sfx_victory();
         wins++;
@@ -515,6 +592,8 @@ void show_end_screen(int player_won) {
         eputs("=== AI WINS ===\r\n");
     }
     clear_screen();
+
+    // Flip the pointers so the winner's data is always in "my_team"
     const int *my_team    = player_won ? player_team : ai_team;
     const int *their_team = player_won ? ai_team     : player_team;
 
@@ -527,7 +606,7 @@ void show_end_screen(int player_won) {
     }
 
     char tmp[5]; int j;
-    // Winner sprites + names
+    // Draw winning team's sprites and first-4-char name abbreviations
     for (int i=0; i<3; i++) {
         putImage(2+i*40, 40,
                  player_won ? PLAYER_SPR_W : ENEMY_SPR_W,
@@ -536,114 +615,131 @@ void show_end_screen(int player_won) {
                  player_won ? 0 : 1, 0);
         for (j=0; j<4 && char_names[my_team[i]][j]; j++) tmp[j]=char_names[my_team[i]][j];
         tmp[j]=0;
-        printText(tmp, 2+i*40, 102, player_won?COL_GREEN:COL_RED, COL_BLACK);
+        printText(tmp, 2+i*40, 102, player_won ? COL_GREEN : COL_RED, COL_BLACK);
     }
-    // Loser names
+    // Loser's names (abbreviated)
     printText(player_won ? "AI lost:" : "You lost:", 2, 114,
               player_won ? COL_RED : COL_GREEN, COL_BLACK);
     for (int i=0; i<3; i++) {
         for (j=0; j<4 && char_names[their_team[i]][j]; j++) tmp[j]=char_names[their_team[i]][j];
         tmp[j]=0;
-        printText(tmp, 2+i*40, 124, player_won?COL_RED:COL_GREEN, COL_BLACK);
+        printText(tmp, 2+i*40, 124, player_won ? COL_RED : COL_GREEN, COL_BLACK);
     }
 
     printText("Any btn=Menu", 2, 148, COL_GRAY, COL_BLACK);
     drain_buttons();
-    godmode = 0; 
-    while (!btn_confirm_just()&&!btn_left_just()&&!btn_right_just()&&!btn_down_just()) {
+    godmode = 0; // Reset cheat on every battle end
+    while (!btn_confirm_just() && !btn_left_just() && !btn_right_just() && !btn_down_just()) {
         mdelay(50); btn_up_just();
     }
     music_play(track_menu, len_track_menu, 1);
 }
 
-// ─── Main ────────────────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 int main(void) {
-    initClock(); initSysTick(); setupIO();
+    initClock();
+    initSysTick();
+    setupIO();
     initSerial();
     initSound();
     eputs("9-5 FIGHTS started\r\n");
     delay(10);
+
+    // Mix the timer value into the seed so each power-on gives different random numbers
     rng_seed += milliseconds;
 
+// goto target, jumps back here after each full game to return to the main menu
 game_start:
     {
-        leds_all_on(); 
+        leds_all_on(); // All 3 LEDs on = all characters alive
+
         int menu_select=0;
         draw_start_screen_full();
-        update_start_screen(0,0);
+        update_start_screen(0, 0);
+
+        // Main menu loop
         while (1) {
-            
             delay(50);
-            btn_left_just();
+            btn_left_just(); // Not used in the menu, just consume it
+
             if (btn_down_just()) {
                 sfx_menu_move();
                 int old=menu_select;
-                menu_select=(menu_select+NUM_MENU_ITEMS-1)%NUM_MENU_ITEMS;
-                update_start_screen(old,menu_select);
+                menu_select=(menu_select+NUM_MENU_ITEMS-1)%NUM_MENU_ITEMS; // scroll up
+                update_start_screen(old, menu_select);
             }
             if (btn_up_just()) {
                 sfx_menu_move();
                 int old=menu_select;
-                menu_select=(menu_select+1)%NUM_MENU_ITEMS;
-                update_start_screen(old,menu_select);
+                menu_select=(menu_select+1)%NUM_MENU_ITEMS; // scroll down
+                update_start_screen(old, menu_select);
             }
             if (btn_confirm_just()) {
                 sfx_confirm();
-                if (menu_select==0) break;
+                if (menu_select==0) break;           // START — exit loop and begin
                 else if (menu_select==1) {
                     credits();
-                    draw_start_screen_full();
-                    update_start_screen(menu_select,menu_select);
+                    draw_start_screen_full();        // Redraw on return from credits
+                    update_start_screen(menu_select, menu_select);
                 }
+                // menu_select==2, does nothing on embedded 
             }
         }
     }
+
     character_select();
     music_stop();
     sfx_battle_start();
     music_play(track_battle, len_track_battle, 1);
+
     {
-        int player_char_idx=0, ai_char_idx=0;
-        int player_hp=100, enemy_hp=100, selected=0;
+        // Battle state
+        int player_char_idx=0, ai_char_idx=0; // Which character in their team is currently fighting
+        int player_hp=100, enemy_hp=100;
+        int selected=0; // Currently highlighted move (0, 1, or 2)
         GameState state=STATE_PLAYER_TURN;
+
         const uint16_t *p_sprite=char_sprites[player_team[0]];
         const uint16_t *e_sprite=char_sprites[ai_team[0]];
         const Move     *p_moves =char_moves[player_team[0]];
         const Move     *e_moves =char_moves[ai_team[0]];
 
         clear_screen();
-        draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
+        draw_scene(player_hp, enemy_hp, p_sprite, e_sprite, player_char_idx, ai_char_idx);
         show_message("YOUR TURN","Choose a move!");
-        draw_move_buttons(selected,p_moves);
+        draw_move_buttons(selected, p_moves);
 
+        // ─── Main Battle Loop ───────────────────────────────────────────────
         while (1) {
             mdelay(50);
             int bl=btn_left_just(), br=btn_right_just(), bc=btn_confirm_just();
-            btn_down_just(); btn_up_just();
+            btn_down_just(); btn_up_just(); // not used mid-battle, just drain them
 
             if (state==STATE_PLAYER_TURN) {
                 int move_used=-1;
-                if      (bl) { selected=(selected+2)%3; draw_move_buttons(selected,p_moves); }
-                else if (br) { selected=(selected+1)%3; draw_move_buttons(selected,p_moves); }
+                if      (bl) { selected=(selected+2)%3; draw_move_buttons(selected, p_moves); } // cycle left
+                else if (br) { selected=(selected+1)%3; draw_move_buttons(selected, p_moves); } // cycle right
                 else if (bc) { move_used=selected; }
+
                 if (move_used >= 0) {
-                    int dmg=rand_range(p_moves[move_used].dmg_lo,p_moves[move_used].dmg_hi);
-                    if (godmode) dmg *= 10;
-                    serial_log_move("PLAYER", p_moves[move_used].name, dmg);
+                    int dmg=rand_range(p_moves[move_used].dmg_lo, p_moves[move_used].dmg_hi);
+                    if (godmode) dmg *= 10; // Cheat code damage multiplier
+                    serial_log_move("PLAYER", p_moves[move_used].name, dmg); // Serial output
                     if ((enemy_hp-=dmg) < 0) enemy_hp=0;
                     sfx_player_attack();
                     clear_screen();
-                    draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
-                    show_message("YOU attack!",p_moves[move_used].flavor);
-                    draw_move_buttons(selected,p_moves);
+                    draw_scene(player_hp, enemy_hp, p_sprite, e_sprite, player_char_idx, ai_char_idx);
+                    show_message("YOU attack!", p_moves[move_used].flavor);
+                    draw_move_buttons(selected, p_moves);
                     play_attack_anim(ENEMY_X, ENEMY_Y, ENEMY_SPR_W, ENEMY_SPR_H, animation_flash_damage, e_sprite, 1);
                     mdelay(600);
+
                     if (enemy_hp <= 0) {
                         eputs("ENEMY char KO'd!\r\n");
                         if (++ai_char_idx >= 3) {
-                            state=STATE_PLAYER_WIN;
+                            state=STATE_PLAYER_WIN; // All 3 AI characters KO'd
                         } else {
-                            // then if switching:
+                            // Switch in the AI's next character
                             eputs("ENEMY switched to: ");
                             eputs(char_names[ai_team[ai_char_idx]]);
                             eputs("\r\n");
@@ -652,44 +748,51 @@ game_start:
                             e_moves =char_moves[ai_team[ai_char_idx]];
                             clear_screen();
                             show_message("Enemy KO!","Next!");
-                            putImage(50,95,ENEMY_SPR_W,ENEMY_SPR_H,e_sprite,1,0);
+                            putImage(50, 95, ENEMY_SPR_W, ENEMY_SPR_H, e_sprite, 1, 0);
                             sfx_enemy_ko();
                             mdelay(1200);
                             clear_screen();
-                            draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
+                            draw_scene(player_hp, enemy_hp, p_sprite, e_sprite, player_char_idx, ai_char_idx);
                             show_message("YOUR TURN","Choose a move!");
-                            draw_move_buttons(selected,p_moves);
+                            draw_move_buttons(selected, p_moves);
                             state=STATE_PLAYER_TURN;
                         }
-                    } else { state=STATE_ENEMY_TURN; }
+                    } else {
+                        state=STATE_ENEMY_TURN;
+                    }
                 }
+
             } else if (state==STATE_ENEMY_TURN) {
-                mdelay(600);
-                int ai_move=rand_range(0,2);
-                if (ai_move==2 && enemy_hp<50) ai_move=rand_range(0,1);
-                int dmg=rand_range(e_moves[ai_move].dmg_lo,e_moves[ai_move].dmg_hi);
+                mdelay(600); // Slight pause before AI attacks, makes it feel more natural.
+
+                // Simple AI, picks a random move. But if HP is low, avoids the risky high-variance move.
+                int ai_move=rand_range(0, 2);
+                if (ai_move==2 && enemy_hp<50) ai_move=rand_range(0, 1);
+
+                int dmg=rand_range(e_moves[ai_move].dmg_lo, e_moves[ai_move].dmg_hi);
                 serial_log_move("ENEMY", e_moves[ai_move].name, dmg);
                 if ((player_hp-=dmg) < 0) player_hp=0;
                 sfx_enemy_attack();
                 clear_screen();
-                draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
-                show_message("ENEMY attacks!",e_moves[ai_move].flavor);
-                draw_move_buttons(selected,p_moves);
+                draw_scene(player_hp, enemy_hp, p_sprite, e_sprite, player_char_idx, ai_char_idx);
+                show_message("ENEMY attacks!", e_moves[ai_move].flavor);
+                draw_move_buttons(selected, p_moves);
                 play_attack_anim(PLAYER_X, PLAYER_Y, PLAYER_SPR_W, PLAYER_SPR_H, animation_flash_damage, p_sprite, 0);
                 mdelay(600);
+
                 if (player_hp <= 0) {
                     eputs("PLAYER char KO'd!\r\n");
-                    // --- Turn off an LED when Player loses a character ---
-                    if (player_char_idx == 0) { // First character KO'd?
-                        led_off(0); // Turn off first LED (PA9)
-                    } else if (player_char_idx == 1) { // Second character KO'd?
-                        led_off(1); // Turn off second LED (PA10)
-    }
+                    // Turn off an LED for each character the player loses
+                    if (player_char_idx == 0) {
+                        led_off(0); // First character KO'd, turn off LED0 (PA9)
+                    } else if (player_char_idx == 1) {
+                        led_off(1); // Second character KO'd, turn off LED1 (PA10)
+                    }
                     if (++player_char_idx >= 3) {
-                        led_off(2);
-                        state=STATE_ENEMY_WIN;
+                        led_off(2); // Third character KO'd, turn off last LED (PA12)
+                        state=STATE_ENEMY_WIN; // Brings up end screen.
                     } else {
-                        // then if switching:
+                        // Switch in the player's next character
                         eputs("PLAYER switched to: ");
                         eputs(char_names[player_team[player_char_idx]]);
                         eputs("\r\n");
@@ -699,77 +802,102 @@ game_start:
                         selected=0;
                         clear_screen();
                         show_message("You KO'd!","Next!");
-                        putImage(50,95,PLAYER_SPR_W,PLAYER_SPR_H,p_sprite,0,0);
+                        putImage(50, 95, PLAYER_SPR_W, PLAYER_SPR_H, p_sprite, 0, 0);
                         sfx_player_ko();
                         delay(1200);
                         clear_screen();
-                        draw_scene(player_hp,enemy_hp,p_sprite,e_sprite,player_char_idx,ai_char_idx);
+                        draw_scene(player_hp, enemy_hp, p_sprite, e_sprite, player_char_idx, ai_char_idx);
                         show_message("YOUR TURN","Choose a move!");
-                        draw_move_buttons(selected,p_moves);
+                        draw_move_buttons(selected, p_moves);
                         state=STATE_PLAYER_TURN;
                     }
                 } else {
                     state=STATE_PLAYER_TURN;
                     show_message("YOUR TURN","Choose a move!");
                 }
+
             } else {
+                // STATE_PLAYER_WIN or STATE_ENEMY_WIN
                 show_end_screen(state==STATE_PLAYER_WIN);
-                goto game_start;
+                goto game_start; // Loop back to the main menu for another game
             }
         }
     }
     return 0;
 }
 
-// ─── Peripheral init ─────────────────────────────────────────────────────────
+// ─── Peripheral Initialisation ────────────────────────────────────────────────
+
+// SysTick is a built-in ARM Cortex timer that fires an interrupt every N CPU cycles.
+// LOAD = 48000 means it fires every 48000 cycles. At 48 MHz, that's every 1 ms.
+// CTRL = 7 enables the timer, enables the interrupt, and uses the CPU clock as source.
 void initSysTick(void) {
-    SysTick->LOAD=48000; SysTick->CTRL=7; SysTick->VAL=10;
-    __asm(" cpsie i ");
+    SysTick->LOAD=48000;
+    SysTick->CTRL=7;
+    SysTick->VAL=10;
+    __asm(" cpsie i "); // Globally enable interrupts
 }
+
+// This is the SysTick interrupt handler — called every 1 ms automatically.
 void SysTick_Handler(void) { milliseconds++; }
+
+// Configures the STM32F031 to run at 48 MHz using the internal oscillator + PLL.
+// The default clock is 8 MHz. Enabling the PLL with correct multipliers bumps it to 48 MHz.
+// The flash wait state also needs to be set to 1 cycle at this speed — otherwise the
+// CPU would try to fetch instructions faster than flash can serve them.
 void initClock(void) {
-    RCC->CR &= ~(1u<<24);
-    while (RCC->CR & (1<<25));
-    FLASH->ACR |= (1<<0);
+    RCC->CR &= ~(1u<<24);          // Turn off PLL before changing settings
+    while (RCC->CR & (1<<25));     // Wait for PLL to unlock
+    FLASH->ACR |= (1<<0);          // Enable flash prefetch buffer
     FLASH->ACR &= ~((1u<<2)|(1u<<1));
-    FLASH->ACR |= (1<<4);
-    RCC->CFGR  &= ~((1u<<21)|(1u<<20)|(1u<<19)|(1u<<18));
-    RCC->CFGR  |= ((1<<21)|(1<<19));
-    RCC->CFGR  |= (1<<14);
-    RCC->CR    |= (1<<24);
-    RCC->CFGR  |= (1<<1);
+    FLASH->ACR |= (1<<4);          // Set 1 wait state for 48 MHz operation
+    RCC->CFGR &= ~((1u<<21)|(1u<<20)|(1u<<19)|(1u<<18)); // Clear PLL multiplier bits
+    RCC->CFGR |= ((1<<21)|(1<<19)); // Set PLL multiplier to x12 (8 MHz / 2 * 12 = 48 MHz)
+    RCC->CFGR |= (1<<14);           // Divide HSI by 2 before PLL input
+    RCC->CR |= (1<<24);             // Turn PLL on
+    RCC->CFGR |= (1<<1);            // Switch system clock source to PLL
 }
+
+// Simple blocking delay that just waits for `dly` milliseconds.
 void delay(volatile uint32_t dly) {
     uint32_t end=dly+milliseconds;
     while (milliseconds != end) __asm(" wfi ");
 }
+
+// Enables the internal pull-up resistor on a GPIO pin.
+// PUPDR: 00 = no pull, 01 = pull-up, 10 = pull-down.
+// Shifts 01 into the correct 2-bit field for the given pin number.
 void enablePullUp(GPIO_TypeDef *Port, uint32_t BitNumber) {
-    Port->PUPDR &= ~(3u<<BitNumber*2);
-    Port->PUPDR |=  (1u<<BitNumber*2);
+    Port->PUPDR &= ~(3u << BitNumber*2);
+    Port->PUPDR |=  (1u << BitNumber*2);
 }
+
+// Sets the mode of a GPIO pin.
+// Mode 0 = input, 1 = output, 2 = alternate function, 3 = analog.
+// MODER uses 2 bits per pin, so we shift by BitNumber*2.
 void pinMode(GPIO_TypeDef *Port, uint32_t BitNumber, uint32_t Mode) {
     uint32_t v=Port->MODER;
-    v &= ~(3u <<(BitNumber*2));
-    v |=  (Mode<<(BitNumber*2));
+    v &= ~(3u << (BitNumber*2));
+    v |=  (Mode << (BitNumber*2));
     Port->MODER=v;
 }
 
+// Sets up all GPIO, the display, buttons, and LEDs.
 void setupIO(void) {
-    RCC->AHBENR |= (1<<18)|(1<<17); // Enable clocks for GPIOB and GPIOA
-    for(int i = 0; i < 1000000; i++);
+    RCC->AHBENR |= (1<<18)|(1<<17); // Enable GPIO clocks for GPIOB (bit 18) and GPIOA (bit 17)
+    for(int i = 0; i < 1000000; i++); // Short delay to let the clocks stabilise before use
     display_begin();
-    // Setup button inputs (unchanged)
+
+    // Buttons, all inputs with pull-ups (they're active-low)
     pinMode(GPIOB,4,0); pinMode(GPIOB,5,0);
     pinMode(GPIOA,8,0); pinMode(GPIOA,11,0); pinMode(GPIOA,1,0);
     enablePullUp(GPIOB,4); enablePullUp(GPIOB,5);
     enablePullUp(GPIOA,11); enablePullUp(GPIOA,8); enablePullUp(GPIOA,1);
 
-    
-    // --- Setup LEDs ---
-    // Set PB0, PB6, PB7 as output mode (Mode = 1)
-    pinMode(GPIOA, 9, 1); // Mode 1 = Output
-    pinMode(GPIOA, 10, 1); // Mode 1 = Output
-    pinMode(GPIOA, 12, 1); // Mode 1 = Output
+    // LEDs, outputs on PA9, PA10, PA12
+    pinMode(GPIOA, 9,  1); // Output
+    pinMode(GPIOA, 10, 1); // Output
+    pinMode(GPIOA, 12, 1); // Output
 
-    leds_all_on(); 
+    leds_all_on(); // Start with all 3 LEDs lit (meaning all the characters are alive)
 }
